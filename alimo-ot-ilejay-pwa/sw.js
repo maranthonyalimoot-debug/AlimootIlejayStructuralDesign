@@ -37,6 +37,10 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
 
+  // Admin is a fast-iterating internal tool with placeholder data — never
+  // serve it from the cache, always go to the network.
+  if (new URL(event.request.url).pathname.startsWith('/admin')) return;
+
   event.respondWith(
     caches.match(event.request).then((cached) => {
       if (cached) return cached;
