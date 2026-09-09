@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Alimo-ot Ilejay Structural Design</title>
+<meta name="description" content="Alimo-ot Ilejay Structural Design — structural design engineering firm specializing in reinforced concrete and steel design for mid- to high-rise developments in the Philippines.">
+
+<!-- PWA readiness -->
+<meta name="theme-color" content="#14181f">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Alimo-ot Ilejay">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="assets/icons/icon-192.png">
+<link rel="icon" href="assets/icons/icon-192.png">
+
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<a href="#main" class="skip-link">Skip to content</a>
+
+<header id="siteHeader">
+  <div class="wrap nav">
+    <a href="#" class="logo"><strong>Alimo-ot Ilejay</strong><span>Structural Design</span></a>
+    <nav class="nav-links" aria-label="Primary">
+      <a href="#services" class="nav-item">Services <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M6 9l6 6 6-6"/></svg></a>
+      <a href="#about" class="nav-item">About Us <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M6 9l6 6 6-6"/></svg></a>
+      <a href="#portfolio" class="nav-item">Portfolio <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M6 9l6 6 6-6"/></svg></a>
+      <a href="#contact">Contact</a>
+    </nav>
+    <div class="nav-cta">
+      <button class="nav-search" aria-label="Search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg></button>
+      <a href="#contact" class="btn btn-outline">Get in touch</a>
+      <button class="menu-toggle" id="menuToggle" aria-label="Open menu" aria-expanded="false"><span></span></button>
+    </div>
+  </div>
+</header>
+
+<div class="mobile-drawer" id="mobileDrawer">
+  <button class="drawer-close" id="drawerClose" aria-label="Close menu">
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#0a0a0c" stroke-width="2"><path d="M4 4l16 16M20 4L4 20"/></svg>
+  </button>
+  <a href="#services">Services</a>
+  <a href="#about">About Us</a>
+  <a href="#portfolio">Portfolio</a>
+  <a href="#contact">Contact</a>
+  <a href="#contact" class="btn btn-primary">Get in touch</a>
+</div>
+
+<main id="main">
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-bg">
+      <img src="assets/hero-makati.jpg" alt="Makati skyline at dusk" fetchpriority="high">
+      <div class="hero-scrim"></div>
+    </div>
+    <div class="wrap hero-inner">
+      <span class="eyebrow eyebrow-light">Structural Design Engineers · Philippines</span>
+      <h1 class="hero-h1-light">Structure engineered to <span class="accent">endure.</span></h1>
+      <p class="hero-sub hero-sub-light">
+        We deliver efficient and reliable structural engineering solutions, from
+        analysis and design to comprehensive structural design and analysis reports —
+        spanning steel and reinforced concrete structures, designed with safety,
+        efficiency, and constructability in mind.
+      </p>
+      <div class="hero-actions">
+        <a href="#contact" class="btn btn-primary">Start a Project <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+        <a href="#portfolio" class="btn btn-outline-light">View Portfolio</a>
+      </div>
+    </div>
+
+    <div class="wrap">
+      <div class="stat-row stat-row-light">
+        <div class="stat"><b>13</b><span>High-Rise Projects</span></div>
+        <div class="stat"><b>7</b><span>Years Combined Experience</span></div>
+        <div class="stat"><b>2</b><span>Licensed Principals</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MISSION / GOAL -->
+  <section class="mission" id="mission">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <span class="eyebrow">Our Goal</span>
+        <h2>Structures designed to ensure life safety.</h2>
+        <p>Every member we design is sized for exactly what it needs to carry — no more,
+          no less — so it performs safely for its full intended service life without
+          inflating cost or construction time.</p>
+      </div>
+
+      <div class="mission-grid">
+        <div class="mission-card reveal">
+          <span class="mission-index">01</span>
+          <h3>Safety First</h3>
+          <p>Every design follows all applicable requirements of NSCP 2015, ACI 318,
+            and AISC 360 — in full, not just the minimums.</p>
+        </div>
+        <div class="mission-card reveal">
+          <span class="mission-index">02</span>
+          <h3>Engineered Economy</h3>
+          <p>Members are sized from first-principles analysis and hand-verified
+            calculations — trimming excess concrete and steel that add cost without
+            adding capacity.</p>
+        </div>
+        <div class="mission-card reveal">
+          <span class="mission-index">03</span>
+          <h3>Fast, Not Careless</h3>
+          <p>We use commercially licensed software and have built our own in-house
+            tools to speed through repetitive calculations without cutting corners.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SERVICES -->
+  <section class="services" id="services">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <span class="eyebrow">What We Do</span>
+        <h2>Structural engineering, scoped to your project.</h2>
+        <p>Full structural design support for reinforced concrete and steel systems —
+          from analysis and design through to signed and sealed construction
+          drawings — engaged as a specialist consultant on individual members or as
+          part of a project's broader design team.</p>
+      </div>
+
+      <div class="service-grid">
+        <div class="service-card reveal">
+          <span class="service-index">01</span>
+          <svg class="service-icon" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="10" y="6" width="6" height="36"/><rect x="32" y="6" width="6" height="36"/><path d="M16 16h16M16 24h16M16 32h16"/></svg>
+          <h3>Structural Analysis &amp; Design</h3>
+          <p>Slabs, beams, girders, columns, shear walls, mat foundations, and pile
+            foundations, for both reinforced concrete and steel structures —
+            designed for safety, efficiency, and constructability under NSCP 2015,
+            ACI 318, and AISC 360.</p>
+        </div>
+        <div class="service-card reveal">
+          <span class="service-index">02</span>
+          <svg class="service-icon" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M10 6h20l8 8v28H10z"/><path d="M30 6v8h8"/><path d="M16 24l5 5 11-11"/></svg>
+          <h3>Design &amp; Analysis Reports</h3>
+          <p>Comprehensive structural design and analysis reports prepared for permitting,
+            peer review, and coordination with architects and MEP consultants.</p>
+        </div>
+        <div class="service-card reveal">
+          <span class="service-index">03</span>
+          <svg class="service-icon" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="8" y="6" width="26" height="34" rx="1"/><path d="M14 14h14M14 20h14M14 26h9"/><circle cx="34" cy="34" r="7"/><path d="M31 34l2 2 4-4"/></svg>
+          <h3>Complete Structural Plans</h3>
+          <p>Full sets of structural construction drawings — signed and sealed,
+            ready for permitting and construction.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ABOUT / COMPANY DETAILS -->
+  <section class="about" id="about">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <span class="eyebrow">About Us</span>
+        <h2 style="text-transform:none;">Two licensed engineers. One standard for the work.</h2>
+        <p>We're a young firm — but our team's experience isn't. We were trained at
+          the Philippines' leading structural consultancy, intensively involved in
+          the design of mid- to high-rise developments across Metro Manila, and now
+          bring that same rigor directly to your project.</p>
+      </div>
+
+      <div class="team-grid">
+        <div class="team-card reveal">
+          <div class="team-photo">
+            <svg viewBox="0 0 300 300" preserveAspectRatio="xMidYMid slice"><rect width="300" height="300" fill="#0a0a0c"/><circle cx="150" cy="120" r="52" fill="none" stroke="#3a3a3f" stroke-width="1.4"/><path d="M70 260 Q150 180 230 260" fill="none" stroke="#b9702e" stroke-width="1.6"/></svg>
+            <span class="tag">Team photo placeholder</span>
+          </div>
+          <h3>Mar Anthony Alimo-ot</h3>
+          <span class="role">Licensed Civil Engineer</span>
+          <ul class="bio-list">
+            <li>B.S. Civil Engineering, Central Philippine University — <em>Cum Laude</em></li>
+            <li>Registered Civil Engineer (RCE), PRC Philippines — since Nov. 2019</li>
+          </ul>
+        </div>
+        <div class="team-card reveal">
+          <div class="team-photo">
+            <svg viewBox="0 0 300 300" preserveAspectRatio="xMidYMid slice"><rect width="300" height="300" fill="#0a0a0c"/><circle cx="150" cy="120" r="52" fill="none" stroke="#3a3a3f" stroke-width="1.4"/><path d="M70 260 Q150 180 230 260" fill="none" stroke="#b9702e" stroke-width="1.6"/></svg>
+            <span class="tag">Team photo placeholder</span>
+          </div>
+          <h3>Samantha Ilejay</h3>
+          <span class="role">Licensed Civil Engineer</span>
+          <ul class="bio-list">
+            <li>B.S. Civil Engineering, Central Philippine University</li>
+            <li>M.B.A., Hult International Business School, UK — <em>With Academic Distinction</em></li>
+            <li>Registered Civil Engineer (RCE), PRC Philippines — since Nov. 2019</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PORTFOLIO -->
+  <section class="portfolio" id="portfolio">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <span class="eyebrow">Prior Experience</span>
+        <h2>Structural design experience gained across the metro skyline.</h2>
+        <p>These developments were not designed under Alimo-ot Ilejay Structural
+          Design. They reflect projects our principals worked on as structural
+          engineers employed by Sysquared + Associates Inc., shown here as a
+          record of hands-on experience on real, built structures.</p>
+      </div>
+
+      <div class="filter-row reveal">
+        <button class="filter-btn active" data-filter="all">All Projects</button>
+        <button class="filter-btn" data-filter="ayala">Ayala Land</button>
+        <button class="filter-btn" data-filter="megaworld">Megaworld</button>
+        <button class="filter-btn" data-filter="other">Other Developers</button>
+      </div>
+
+      <div class="project-grid" id="projectGrid">
+        <!-- project cards injected by JS from PROJECTS array -->
+      </div>
+
+      <p class="disclosure reveal">
+        Project imagery courtesy of respective developer and project websites, used
+        for portfolio reference only. These are not Alimo-ot Ilejay Structural
+        Design projects — the structural work shown was completed under Sysquared +
+        Associates Inc., where our principals were employed at the time, scoped to
+        specific structural members and not sole design authorship.
+      </p>
+    </div>
+  </section>
+
+  <!-- CONTACT -->
+  <section class="contact" id="contact">
+    <div class="wrap contact-grid">
+      <div class="contact-info reveal">
+        <span class="eyebrow">Design With Us</span>
+        <h2 style="text-transform:none;">Tell us your goals. We'll craft the plan.</h2>
+        <p>Send over your project scope, drawings, or a rough idea — we'll follow up
+          within one business day to discuss fit, timeline, and next steps.</p>
+
+        <div class="contact-detail">
+          <div><b>Email</b>hello@alimootilejay.com</div>
+          <div><b>Location</b>Metro Manila, Philippines</div>
+          <div><b>Response Time</b>Within 1 business day</div>
+        </div>
+
+        <div class="social-row">
+          <a href="#" aria-label="Facebook"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M13.5 21v-8h2.7l.4-3.1h-3.1V8c0-.9.3-1.5 1.6-1.5H17V3.6C16.6 3.5 15.6 3.4 14.4 3.4c-2.5 0-4.2 1.5-4.2 4.3V10H7.5v3.1h2.7v8h3.3z"/></svg></a>
+          <a href="#" aria-label="Instagram"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3.5" y="3.5" width="17" height="17" rx="4.5"/><circle cx="12" cy="12" r="4"/><circle cx="17.2" cy="6.8" r="1"/></svg></a>
+          <a href="#" aria-label="TikTok"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.5 3c.4 2.2 1.9 3.7 4.2 3.9v3c-1.5 0-2.9-.5-4.1-1.3v6.7c0 3.3-2.4 5.7-5.6 5.7-3.1 0-5.6-2.4-5.6-5.6 0-3.1 2.5-5.6 5.6-5.6.4 0 .8 0 1.2.1v3.1a2.6 2.6 0 1 0 2 2.5V3h2.3z"/></svg></a>
+        </div>
+      </div>
+
+      <form class="reveal" id="contactForm">
+        <div class="form-row">
+          <div class="field">
+            <label for="fname">First Name <span class="req">*</span></label>
+            <input id="fname" name="fname" type="text" required>
+          </div>
+          <div class="field">
+            <label for="lname">Last Name <span class="req">*</span></label>
+            <input id="lname" name="lname" type="text" required>
+          </div>
+        </div>
+        <div class="field">
+          <label for="email">Email <span class="req">*</span></label>
+          <input id="email" name="email" type="email" required>
+        </div>
+        <div class="field">
+          <label for="phone">Phone</label>
+          <input id="phone" name="phone" type="tel">
+        </div>
+        <div class="field">
+          <label for="ptype">Project Type</label>
+          <select id="ptype" name="ptype">
+            <option>Reinforced Concrete Structure</option>
+            <option>Steel Structure</option>
+            <option>Mixed</option>
+            <option>Not Sure Yet</option>
+            <option>Design Review</option>
+            <option>Analysis Report</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="msg">Project Goals <span class="req">*</span></label>
+          <textarea id="msg" name="msg" required placeholder="Tell us about the scope, location, and timeline."></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary">Send Inquiry</button>
+      </form>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap footer-row">
+    <span>&copy; <span id="year"></span> Alimo-ot Ilejay Structural Design. All rights reserved.</span>
+  </div>
+</footer>
+
+<script src="js/main.js"></script>
+
+</body>
+</html>

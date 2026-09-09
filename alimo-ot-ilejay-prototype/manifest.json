@@ -1,0 +1,31 @@
+{
+  "name": "Alimo-ot Ilejay Structural Design",
+  "short_name": "Alimo-ot Ilejay",
+  "description": "Structural design engineering — reinforced concrete and steel design for mid- to high-rise developments.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#14181f",
+  "theme_color": "#14181f",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
