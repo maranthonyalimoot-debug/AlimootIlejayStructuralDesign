@@ -25,10 +25,11 @@ This starts a local static server (via `http-server`) at `http://localhost:5500`
 
 ## Roadmap: Supabase / CRM
 
-A Supabase project has been provisioned for the upcoming CRM/admin functionality (e.g. storing contact-form inquiries, managing portfolio content). Project details:
+Supabase is planned as the backend for a future CRM/admin section (e.g. storing contact-form inquiries, managing portfolio content). Not yet provisioned — the HexaSolve org is currently at its free-tier active-project limit (2), so creating `alimo-ot-ilejay-crm` is blocked until a slot is freed (pause/delete an existing project) or the org upgrades.
+
+Planned details once created:
 
 - Project name: `alimo-ot-ilejay-crm`
 - Region: Southeast Asia (Singapore)
-- Project URL and anon/publishable key: see project owner's notes / Supabase dashboard (not committed here since they're per-environment; the anon key is safe to expose client-side once Row Level Security policies are in place, but no schema or auth has been built yet).
 
-Do not commit the Supabase **service_role** key anywhere in this repo.
+Once created, record the project URL and anon/publishable key in the deployment environment (the anon key is safe to expose client-side once Row Level Security policies are in place). Do not commit the Supabase **service_role** key anywhere in this repo.
