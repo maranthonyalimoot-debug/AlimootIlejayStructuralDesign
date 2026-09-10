@@ -16,18 +16,19 @@
   <div class="wrap">
     <a href="/" class="admin-back">&larr; Site</a>
     <div class="admin-title">Alimo-ot Ilejay <span>Admin</span></div>
-    <div class="tabs">
+    <div class="tabs" id="tabs" hidden>
       <button class="tab-btn active" data-tab="leads">Leads</button>
       <button class="tab-btn" data-tab="tasks">Tasks</button>
     </div>
+    <button id="logoutBtn" class="btn btn-outline btn-sm" hidden>Log out</button>
   </div>
 </header>
 
-<div class="banner">
-  Placeholder mode — data below is stored only in this browser and isn't synced between Mar Anthony and Samantha yet. Real shared storage is planned (Supabase).
+<div class="banner" id="banner" hidden>
+  Signed in — leads and tasks are shared live between Mar Anthony and Samantha.
 </div>
 
-<main>
+<main id="dashboardMain" hidden>
   <div class="toolbar">
     <select id="filterSelect" aria-label="Filter by assignee">
       <option value="all">Everyone</option>
@@ -39,6 +40,23 @@
 
   <div id="board" class="board"></div>
 </main>
+
+<div id="loginOverlay" class="modal-overlay">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="loginTitle">
+    <h2 id="loginTitle">Admin sign-in</h2>
+    <form id="loginForm">
+      <label>Email<input type="email" name="email" required autocomplete="username"></label>
+      <label>Password<input type="password" name="password" required autocomplete="current-password"></label>
+      <p id="loginError" class="login-error" hidden></p>
+      <div class="modal-actions">
+        <span></span>
+        <div class="modal-actions-right">
+          <button type="submit" class="btn btn-primary btn-sm">Sign in</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
 
 <div id="modalOverlay" class="modal-overlay" hidden>
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
@@ -56,6 +74,8 @@
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/admin/js/supabaseClient.js"></script>
 <script src="/admin/js/store.js"></script>
 <script src="/admin/js/admin.js"></script>
 </body>

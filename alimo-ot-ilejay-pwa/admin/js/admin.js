@@ -2,11 +2,21 @@
 let activeTab = 'leads'; // 'leads' | 'tasks'
 let activeFilter = 'all';
 let editingId = null; // id currently being edited, or null when adding
+let leadsCache = [];
+let tasksCache = [];
+let realtimeChannel = null;
 
+const tabsEl = document.getElementById('tabs');
 const tabButtons = document.querySelectorAll('.tab-btn');
 const board = document.getElementById('board');
 const addBtn = document.getElementById('addBtn');
 const filterSelect = document.getElementById('filterSelect');
+const banner = document.getElementById('banner');
+const dashboardMain = document.getElementById('dashboardMain');
+const logoutBtn = document.getElementById('logoutBtn');
+const loginOverlay = document.getElementById('loginOverlay');
+const loginForm = document.getElementById('loginForm');
+const loginError = document.getElementById('loginError');
 const modalOverlay = document.getElementById('modalOverlay');
 const modalForm = document.getElementById('modalForm');
 const modalFields = document.getElementById('modalFields');
@@ -38,8 +48,12 @@ function stageKey(tab) {
 }
 
 function rowsFor(tab) {
-  const rows = tab === 'leads' ? Store.listLeads() : Store.listTasks();
+  const rows = tab === 'leads' ? leadsCache : tasksCache;
   return activeFilter === 'all' ? rows : rows.filter(r => r.assignedTo === activeFilter);
+}
+
+async function refreshData() {
+  [leadsCache, tasksCache] = await Promise.all([Store.listLeads(), Store.listTasks()]);
 }
 
 // ---- Board rendering ----
@@ -107,9 +121,10 @@ function attachCardHandlers() {
   });
   board.querySelectorAll('.move-select').forEach(sel => {
     sel.addEventListener('click', e => e.stopPropagation());
-    sel.addEventListener('change', () => {
-      if (activeTab === 'leads') Store.moveLead(sel.dataset.id, sel.value);
-      else Store.moveTask(sel.dataset.id, sel.value);
+    sel.addEventListener('change', async () => {
+      if (activeTab === 'leads') await Store.moveLead(sel.dataset.id, sel.value);
+      else await Store.moveTask(sel.dataset.id, sel.value);
+      await refreshData();
       renderBoard();
     });
   });
@@ -125,13 +140,15 @@ function attachColumnDnD() {
   board.querySelectorAll('.board-col-body').forEach(colBody => {
     colBody.addEventListener('dragover', (e) => { e.preventDefault(); colBody.classList.add('drag-over'); });
     colBody.addEventListener('dragleave', () => colBody.classList.remove('drag-over'));
-    colBody.addEventListener('drop', (e) => {
+    colBody.addEventListener('drop', async (e) => {
       e.preventDefault();
       colBody.classList.remove('drag-over');
       if (!dragId) return;
-      if (activeTab === 'leads') Store.moveLead(dragId, colBody.dataset.col);
-      else Store.moveTask(dragId, colBody.dataset.col);
+      const id = dragId;
       dragId = null;
+      if (activeTab === 'leads') await Store.moveLead(id, colBody.dataset.col);
+      else await Store.moveTask(id, colBody.dataset.col);
+      await refreshData();
       renderBoard();
     });
   });
@@ -178,7 +195,7 @@ function fieldsHtmlFor(type, item) {
 
 function openModal(id) {
   editingId = id || null;
-  const rows = activeTab === 'leads' ? Store.listLeads() : Store.listTasks();
+  const rows = activeTab === 'leads' ? leadsCache : tasksCache;
   const item = editingId ? rows.find(r => r.id === editingId) : null;
   modalTitle.textContent = editingId
     ? (activeTab === 'leads' ? 'Edit lead' : 'Edit task')
@@ -198,26 +215,82 @@ addBtn.addEventListener('click', () => openModal(null));
 modalCancelBtn.addEventListener('click', closeModal);
 modalOverlay.addEventListener('click', (e) => { if (e.target === modalOverlay) closeModal(); });
 
-modalForm.addEventListener('submit', (e) => {
+modalForm.addEventListener('submit', async (e) => {
   e.preventDefault();
   const data = Object.fromEntries(new FormData(modalForm));
   if (activeTab === 'leads') {
-    editingId ? Store.updateLead(editingId, data) : Store.createLead(data);
+    editingId ? await Store.updateLead(editingId, data) : await Store.createLead(data);
   } else {
-    editingId ? Store.updateTask(editingId, data) : Store.createTask(data);
+    editingId ? await Store.updateTask(editingId, data) : await Store.createTask(data);
   }
   closeModal();
+  await refreshData();
   renderBoard();
 });
 
-modalDeleteBtn.addEventListener('click', () => {
+modalDeleteBtn.addEventListener('click', async () => {
   if (!editingId) return;
   if (!confirm('Delete this item? This cannot be undone.')) return;
-  if (activeTab === 'leads') Store.deleteLead(editingId);
-  else Store.deleteTask(editingId);
+  if (activeTab === 'leads') await Store.deleteLead(editingId);
+  else await Store.deleteTask(editingId);
   closeModal();
+  await refreshData();
   renderBoard();
 });
 
-// ---- Init ----
-renderBoard();
+// ---- Auth gate ----
+function showDashboard() {
+  loginOverlay.hidden = true;
+  tabsEl.hidden = false;
+  logoutBtn.hidden = false;
+  banner.hidden = false;
+  dashboardMain.hidden = false;
+}
+
+function showLogin() {
+  loginOverlay.hidden = false;
+  tabsEl.hidden = true;
+  logoutBtn.hidden = true;
+  banner.hidden = true;
+  dashboardMain.hidden = true;
+}
+
+async function onSignedIn() {
+  showDashboard();
+  board.innerHTML = '<div class="empty-hint">Loading…</div>';
+  await refreshData();
+  renderBoard();
+  subscribeRealtime();
+}
+
+function onSignedOut() {
+  showLogin();
+  loginForm.reset();
+  if (realtimeChannel) { sb.removeChannel(realtimeChannel); realtimeChannel = null; }
+}
+
+function subscribeRealtime() {
+  if (realtimeChannel) return;
+  realtimeChannel = sb.channel('admin-board')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'leads' }, async () => { await refreshData(); renderBoard(); })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, async () => { await refreshData(); renderBoard(); })
+    .subscribe();
+}
+
+loginForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  loginError.hidden = true;
+  const { email, password } = Object.fromEntries(new FormData(loginForm));
+  const { error } = await sb.auth.signInWithPassword({ email, password });
+  if (error) {
+    loginError.textContent = 'Sign-in failed — check your email and password.';
+    loginError.hidden = false;
+  }
+});
+
+logoutBtn.addEventListener('click', () => sb.auth.signOut());
+
+sb.auth.onAuthStateChange((event, session) => {
+  if (session) onSignedIn();
+  else onSignedOut();
+});

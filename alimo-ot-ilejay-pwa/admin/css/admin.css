@@ -102,6 +102,7 @@ body{background:var(--bg-alt);}
 .modal textarea{resize:vertical;}
 .modal-actions{display:flex;justify-content:space-between;align-items:center;margin-top:6px;}
 .modal-actions-right{display:flex;gap:8px;margin-left:auto;}
+.login-error{color:#b3261e;font-size:12.5px;font-weight:600;margin:0;}
 
 @media (max-width:640px){
   .admin-header .wrap{padding:14px 18px;}

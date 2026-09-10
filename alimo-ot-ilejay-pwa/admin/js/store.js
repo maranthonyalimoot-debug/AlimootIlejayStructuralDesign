@@ -1,11 +1,9 @@
-// ---- Admin placeholder data layer ----
-// Wraps localStorage behind functions shaped like the future Supabase calls
+// ---- Admin data layer (Supabase-backed) ----
+// Same function names/shapes as the original localStorage placeholder
 // (listLeads, createLead, updateLead, moveLead, deleteLead, and the Tasks
-// equivalents). This is the one file that should need rewriting once a real
-// backend is provisioned — admin.js should keep working unchanged.
-
-const LEADS_KEY = 'admin_leads';
-const TASKS_KEY = 'admin_tasks';
+// equivalents) so admin.js didn't need to change its field logic — only
+// await these calls, since they're now async. DB rows are snake_case;
+// everything crossing this boundary into admin.js is camelCase.
 
 const LEAD_STAGES = [
   { id: 'new', label: 'New Inquiry' },
@@ -24,86 +22,90 @@ const TASK_STATUSES = [
 
 const ASSIGNEES = ['Mar Anthony', 'Samantha'];
 
-function uid() {
-  return (crypto.randomUUID && crypto.randomUUID()) || `id-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+// Only maps keys actually present on `lead` — a partial patch like
+// {stage: 'won'} (from moveLead/drag-and-drop) must not turn the *other*,
+// unmentioned fields into explicit nulls that overwrite existing data.
+function leadToRow(lead) {
+  const row = {};
+  if ('name' in lead) row.name = lead.name;
+  if ('company' in lead) row.company = lead.company || null;
+  if ('phone' in lead) row.phone = lead.phone || null;
+  if ('email' in lead) row.email = lead.email || null;
+  if ('source' in lead) row.source = lead.source || null;
+  if ('stage' in lead) row.stage = lead.stage;
+  if ('assignedTo' in lead) row.assigned_to = lead.assignedTo;
+  if ('notes' in lead) row.notes = lead.notes || null;
+  return row;
+}
+function rowToLead(row) {
+  return {
+    id: row.id, name: row.name, company: row.company, phone: row.phone,
+    email: row.email, source: row.source, stage: row.stage,
+    assignedTo: row.assigned_to, notes: row.notes,
+    createdAt: row.created_at, updatedAt: row.updated_at,
+  };
 }
 
-function readAll(key) {
-  try {
-    return JSON.parse(localStorage.getItem(key)) || [];
-  } catch {
-    return [];
-  }
+// Same partial-patch safety as leadToRow above.
+function taskToRow(task) {
+  const row = {};
+  if ('title' in task) row.title = task.title;
+  if ('assignedTo' in task) row.assigned_to = task.assignedTo;
+  if ('targetDate' in task) row.target_date = task.targetDate || null;
+  if ('status' in task) row.status = task.status;
+  if ('notes' in task) row.notes = task.notes || null;
+  return row;
+}
+function rowToTask(row) {
+  return {
+    id: row.id, title: row.title, assignedTo: row.assigned_to, targetDate: row.target_date,
+    status: row.status, notes: row.notes, createdAt: row.created_at, updatedAt: row.updated_at,
+  };
 }
 
-function writeAll(key, rows) {
-  localStorage.setItem(key, JSON.stringify(rows));
-}
-
-function seedIfEmpty() {
-  if (localStorage.getItem(LEADS_KEY) === null) {
-    const now = new Date().toISOString();
-    writeAll(LEADS_KEY, [
-      { id: uid(), name: 'Juan Dela Cruz', company: 'Coastal Rise Developers', phone: '0917 000 0000', email: 'juan@coastalrise.ph', source: 'Referral', stage: 'new', assignedTo: 'Mar Anthony', notes: 'Sample lead — edit or delete.', createdAt: now, updatedAt: now },
-      { id: uid(), name: 'Ana Reyes', company: 'Reyes Family Residence', phone: '0917 111 1111', email: 'ana@example.com', source: 'Website inquiry', stage: 'contacted', assignedTo: 'Samantha', notes: 'Sample lead — edit or delete.', createdAt: now, updatedAt: now },
-    ]);
-  }
-  if (localStorage.getItem(TASKS_KEY) === null) {
-    const now = new Date().toISOString();
-    writeAll(TASKS_KEY, [
-      { id: uid(), title: 'Follow up with Coastal Rise on soil report', assignedTo: 'Mar Anthony', targetDate: '', status: 'todo', notes: 'Sample task — edit or delete.', createdAt: now, updatedAt: now },
-    ]);
-  }
+function orThrow({ data, error }) {
+  if (error) throw error;
+  return data;
 }
 
 const Store = {
   LEAD_STAGES, TASK_STATUSES, ASSIGNEES,
 
-  init() { seedIfEmpty(); },
-
-  listLeads() { return readAll(LEADS_KEY); },
-  createLead(data) {
-    const now = new Date().toISOString();
-    const rows = readAll(LEADS_KEY);
-    const lead = { stage: 'new', assignedTo: ASSIGNEES[0], notes: '', ...data, id: uid(), createdAt: now, updatedAt: now };
-    rows.push(lead);
-    writeAll(LEADS_KEY, rows);
-    return lead;
+  async listLeads() {
+    const rows = orThrow(await sb.from('leads').select('*').order('created_at', { ascending: true }));
+    return rows.map(rowToLead);
   },
-  updateLead(id, patch) {
-    const rows = readAll(LEADS_KEY);
-    const i = rows.findIndex(r => r.id === id);
-    if (i === -1) return null;
-    rows[i] = { ...rows[i], ...patch, updatedAt: new Date().toISOString() };
-    writeAll(LEADS_KEY, rows);
-    return rows[i];
+  async createLead(data) {
+    const row = { stage: 'new', assignedTo: ASSIGNEES[0], notes: '', ...data };
+    const rows = orThrow(await sb.from('leads').insert(leadToRow(row)).select());
+    return rowToLead(rows[0]);
+  },
+  async updateLead(id, patch) {
+    const rows = orThrow(
+      await sb.from('leads').update({ ...leadToRow({ ...patch }), updated_at: new Date().toISOString() })
+        .eq('id', id).select()
+    );
+    return rows[0] ? rowToLead(rows[0]) : null;
   },
   moveLead(id, stage) { return this.updateLead(id, { stage }); },
-  deleteLead(id) {
-    writeAll(LEADS_KEY, readAll(LEADS_KEY).filter(r => r.id !== id));
-  },
+  async deleteLead(id) { orThrow(await sb.from('leads').delete().eq('id', id)); },
 
-  listTasks() { return readAll(TASKS_KEY); },
-  createTask(data) {
-    const now = new Date().toISOString();
-    const rows = readAll(TASKS_KEY);
-    const task = { status: 'todo', assignedTo: ASSIGNEES[0], targetDate: '', notes: '', ...data, id: uid(), createdAt: now, updatedAt: now };
-    rows.push(task);
-    writeAll(TASKS_KEY, rows);
-    return task;
+  async listTasks() {
+    const rows = orThrow(await sb.from('tasks').select('*').order('created_at', { ascending: true }));
+    return rows.map(rowToTask);
   },
-  updateTask(id, patch) {
-    const rows = readAll(TASKS_KEY);
-    const i = rows.findIndex(r => r.id === id);
-    if (i === -1) return null;
-    rows[i] = { ...rows[i], ...patch, updatedAt: new Date().toISOString() };
-    writeAll(TASKS_KEY, rows);
-    return rows[i];
+  async createTask(data) {
+    const row = { status: 'todo', assignedTo: ASSIGNEES[0], targetDate: '', notes: '', ...data };
+    const rows = orThrow(await sb.from('tasks').insert(taskToRow(row)).select());
+    return rowToTask(rows[0]);
+  },
+  async updateTask(id, patch) {
+    const rows = orThrow(
+      await sb.from('tasks').update({ ...taskToRow({ ...patch }), updated_at: new Date().toISOString() })
+        .eq('id', id).select()
+    );
+    return rows[0] ? rowToTask(rows[0]) : null;
   },
   moveTask(id, status) { return this.updateTask(id, { status }); },
-  deleteTask(id) {
-    writeAll(TASKS_KEY, readAll(TASKS_KEY).filter(r => r.id !== id));
-  },
+  async deleteTask(id) { orThrow(await sb.from('tasks').delete().eq('id', id)); },
 };
-
-Store.init();
