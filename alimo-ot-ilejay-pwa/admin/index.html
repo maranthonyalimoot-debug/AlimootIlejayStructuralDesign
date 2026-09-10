@@ -16,11 +16,6 @@
   <div class="wrap">
     <a href="/" class="admin-back">&larr; Site</a>
     <div class="admin-title">Alimo-ot Ilejay <span>Admin</span></div>
-    <div class="tabs" id="tabs" hidden>
-      <button class="tab-btn active" data-tab="leads">Leads</button>
-      <button class="tab-btn" data-tab="tasks">Tasks</button>
-      <button class="tab-btn" data-tab="inquiries">Inquiries</button>
-    </div>
     <button id="logoutBtn" class="btn btn-outline btn-sm" hidden>Log out</button>
   </div>
 </header>
@@ -31,17 +26,27 @@
 
 <main id="dashboardMain" hidden>
   <div class="toolbar">
+    <div class="tabs" id="tabs" hidden>
+      <button class="tab-btn" data-tab="inquiries">Inquiries</button>
+      <button class="tab-btn active" data-tab="leads">Leads</button>
+      <button class="tab-btn" data-tab="projects">Projects</button>
+      <button class="tab-btn" data-tab="tasks">Tasks</button>
+    </div>
+    <button id="addBtn" class="btn btn-primary btn-sm">+ Add lead</button>
+  </div>
+
+  <div class="filter-row">
     <select id="filterSelect" aria-label="Filter by assignee">
       <option value="all">Everyone</option>
       <option value="Mar Anthony">Mar Anthony</option>
       <option value="Samantha">Samantha</option>
     </select>
-    <button id="addBtn" class="btn btn-primary btn-sm">+ Add lead</button>
   </div>
 
   <div id="taskSummary" class="task-summary" hidden></div>
 
   <div id="board" class="board"></div>
+  <div id="projectsView" class="projects-view" hidden></div>
 </main>
 
 <div id="loginOverlay" class="modal-overlay">

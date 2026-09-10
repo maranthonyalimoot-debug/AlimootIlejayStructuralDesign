@@ -1,15 +1,17 @@
 // ---- Admin dashboard ----
-let activeTab = 'leads'; // 'leads' | 'tasks' | 'inquiries'
+let activeTab = 'leads'; // 'leads' | 'tasks' | 'inquiries' | 'projects'
 let activeFilter = 'all';
 let editingId = null; // id currently being edited, or null when adding
 let leadsCache = [];
 let tasksCache = [];
 let inquiriesCache = [];
+let projectsCache = [];
 let realtimeChannel = null;
 
 const tabsEl = document.getElementById('tabs');
 const tabButtons = document.querySelectorAll('.tab-btn');
 const board = document.getElementById('board');
+const projectsView = document.getElementById('projectsView');
 const taskSummary = document.getElementById('taskSummary');
 const addBtn = document.getElementById('addBtn');
 const filterSelect = document.getElementById('filterSelect');
@@ -38,8 +40,19 @@ function formatDate(iso) {
   return d.toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
+function formatCurrency(n) {
+  if (n === null || n === undefined || n === '') return '';
+  const num = Number(n);
+  if (isNaN(num)) return '';
+  return `₱${num.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
 function assigneeOptions(selected) {
   return Store.ASSIGNEES.map(a => `<option value="${a}" ${a === selected ? 'selected' : ''}>${a}</option>`).join('');
+}
+
+function projectRoleOptions(selected) {
+  return Store.PROJECT_ROLES.map(r => `<option value="${r}" ${r === selected ? 'selected' : ''}>${r}</option>`).join('');
 }
 
 // Local YYYY-MM-DD "today", comparable lexically against the date-only
@@ -65,21 +78,22 @@ function stageKey(tab) {
 
 function rowsFor(tab) {
   const rows = cacheFor(tab);
-  // Inquiries have no assignee (they haven't been picked up by anyone yet) —
-  // the assignee filter only applies to leads/tasks.
-  if (tab === 'inquiries') return rows;
+  // Inquiries and projects have no assignee field — the assignee filter
+  // only applies to leads/tasks.
+  if (tab === 'inquiries' || tab === 'projects') return rows;
   return activeFilter === 'all' ? rows : rows.filter(r => r.assignedTo === activeFilter);
 }
 
 async function refreshData() {
-  [leadsCache, tasksCache, inquiriesCache] = await Promise.all([
-    Store.listLeads(), Store.listTasks(), Store.listInquiries(),
+  [leadsCache, tasksCache, inquiriesCache, projectsCache] = await Promise.all([
+    Store.listLeads(), Store.listTasks(), Store.listInquiries(), Store.listProjects(),
   ]);
 }
 
 function cacheFor(tab) {
   if (tab === 'leads') return leadsCache;
   if (tab === 'inquiries') return inquiriesCache;
+  if (tab === 'projects') return projectsCache;
   return tasksCache;
 }
 
@@ -102,6 +116,15 @@ function removeFromCache(tab, id) {
 
 // ---- Board rendering ----
 function renderBoard() {
+  // Projects aren't a kanban — they're a plain rows-and-columns table.
+  board.hidden = activeTab === 'projects';
+  projectsView.hidden = activeTab !== 'projects';
+  if (activeTab === 'projects') {
+    renderProjectsTable();
+    renderTaskSummary();
+    return;
+  }
+
   const cols = columnsFor(activeTab);
   const key = stageKey(activeTab);
   const rows = rowsFor(activeTab);
@@ -138,6 +161,75 @@ function renderTaskSummary() {
     <div class="summary-stat"><span class="summary-num">${inProgress}</span><span class="summary-label">In Progress</span></div>
     <div class="summary-stat summary-stat-danger"><span class="summary-num">${overdue}</span><span class="summary-label">Overdue</span></div>
   `;
+}
+
+// ---- Projects table (rows & columns, not kanban) ----
+const PROJECT_COLUMNS = [
+  { label: 'Project ID' }, { label: 'Principal of Record' }, { label: 'Project Name' },
+  { label: 'Client Name' }, { label: 'Description' },
+  { label: 'Service Availed' }, { label: 'Contract Cost' }, { label: 'Downpayment' },
+  { label: 'Payment Date' }, { label: 'Final Payment' }, { label: 'Payment Date' },
+  { label: 'Submission Date' }, { label: 'Status' }, { label: 'Printing & Delivery Cost' },
+];
+
+function serviceLabel(id) {
+  return Store.PROJECT_SERVICES.find(s => s.id === id)?.label || '';
+}
+
+function projectRowHtml(item) {
+  const statusOptions = Store.PROJECT_STATUSES
+    .map(s => `<option value="${s.id}" ${s.id === item.status ? 'selected' : ''}>${s.label}</option>`)
+    .join('');
+  return `
+    <tr data-id="${item.id}">
+      <td>${escapeHtml(item.projectId)}</td>
+      <td>${escapeHtml(item.principalOfRecord)}</td>
+      <td>${escapeHtml(item.projectName)}</td>
+      <td>${escapeHtml(item.clientName)}</td>
+      <td>${escapeHtml(item.description)}</td>
+      <td>${escapeHtml(serviceLabel(item.serviceAvailed))}</td>
+      <td class="cell-num">${formatCurrency(item.contractCost)}</td>
+      <td class="cell-num">${formatCurrency(item.downpayment)}</td>
+      <td>${formatDate(item.downpaymentDate)}</td>
+      <td class="cell-num">${formatCurrency(item.finalPayment)}</td>
+      <td>${formatDate(item.finalPaymentDate)}</td>
+      <td>${formatDate(item.submissionDate)}</td>
+      <td><select class="move-select project-status-select" data-id="${item.id}">${statusOptions}</select></td>
+      <td class="cell-num">${formatCurrency(item.printingDeliveryCost)}</td>
+    </tr>`;
+}
+
+function renderProjectsTable() {
+  const rows = rowsFor('projects');
+  projectsView.innerHTML = `
+    <div class="projects-table-wrap">
+      <table class="projects-table">
+        <thead><tr>${PROJECT_COLUMNS.map(c => `<th>${c.label}</th>`).join('')}</tr></thead>
+        <tbody>${rows.map(projectRowHtml).join('') || `<tr><td colspan="${PROJECT_COLUMNS.length}" class="empty-hint">No projects yet</td></tr>`}</tbody>
+      </table>
+    </div>`;
+  attachProjectRowHandlers();
+}
+
+function attachProjectRowHandlers() {
+  projectsView.querySelectorAll('tbody tr[data-id]').forEach(row => {
+    row.addEventListener('click', (e) => {
+      if (e.target.closest('.project-status-select')) return;
+      openModal(row.dataset.id);
+    });
+  });
+  projectsView.querySelectorAll('.project-status-select').forEach(sel => {
+    sel.addEventListener('click', e => e.stopPropagation());
+    sel.addEventListener('change', async () => {
+      try {
+        const updated = await Store.moveProject(sel.dataset.id, sel.value);
+        upsertInCache('projects', updated);
+      } catch (err) {
+        alert(`Could not update status: ${err.message || err}`);
+      }
+      renderProjectsTable();
+    });
+  });
 }
 
 function cardHtml(item) {
@@ -250,7 +342,8 @@ tabButtons.forEach(btn => {
     tabButtons.forEach(b => b.classList.toggle('active', b === btn));
     // Inquiries only ever arrive via the public form — there's no "add" for them.
     addBtn.hidden = activeTab === 'inquiries';
-    addBtn.textContent = activeTab === 'leads' ? '+ Add lead' : '+ Add task';
+    addBtn.textContent = activeTab === 'leads' ? '+ Add lead'
+      : activeTab === 'projects' ? '+ Add project' : '+ Add task';
     renderBoard();
   });
 });
@@ -269,6 +362,24 @@ function readonlyField(label, value) {
 
 // ---- Modal (shared for add + edit, fields depend on active tab) ----
 function fieldsHtmlFor(type, item) {
+  if (type === 'projects') {
+    return `
+      <label>Project ID<input name="projectId" required value="${escapeHtml(item?.projectId)}"></label>
+      <label>Principal of Record<select name="principalOfRecord">${assigneeOptions(item?.principalOfRecord)}</select></label>
+      <label>Project name<input name="projectName" required value="${escapeHtml(item?.projectName)}"></label>
+      <label>Client Name<input name="clientName" required value="${escapeHtml(item?.clientName)}"></label>
+      <label>Description<select name="description">${projectRoleOptions(item?.description)}</select></label>
+      <label>Service Availed<select name="serviceAvailed">${Store.PROJECT_SERVICES.map(s => `<option value="${s.id}" ${item && s.id === item.serviceAvailed ? 'selected' : ''}>${s.label}</option>`).join('')}</select></label>
+      <label>Contract Cost<input type="number" step="0.01" min="0" name="contractCost" value="${escapeHtml(item?.contractCost)}"></label>
+      <label>Downpayment<input type="number" step="0.01" min="0" name="downpayment" value="${escapeHtml(item?.downpayment)}"></label>
+      <label>Payment Date (Downpayment)<input type="date" name="downpaymentDate" value="${escapeHtml(item?.downpaymentDate)}"></label>
+      <label>Final Payment<input type="number" step="0.01" min="0" name="finalPayment" value="${escapeHtml(item?.finalPayment)}"></label>
+      <label>Payment Date (Final Payment)<input type="date" name="finalPaymentDate" value="${escapeHtml(item?.finalPaymentDate)}"></label>
+      <label>Submission Date<input type="date" name="submissionDate" value="${escapeHtml(item?.submissionDate)}"></label>
+      <label>Status<select name="status">${Store.PROJECT_STATUSES.map(s => `<option value="${s.id}" ${item && s.id === item.status ? 'selected' : ''}>${s.label}</option>`).join('')}</select></label>
+      <label>Printing & Delivery Cost<input type="number" step="0.01" min="0" name="printingDeliveryCost" value="${escapeHtml(item?.printingDeliveryCost)}"></label>
+    `;
+  }
   if (type === 'inquiries') {
     // Inquiries are a submitted record, not something admins hand-edit — every
     // field is read-only except the triage bits (status, internal notes).
@@ -320,7 +431,7 @@ function fieldsHtmlFor(type, item) {
   `;
 }
 
-const modalTitles = { leads: 'lead', tasks: 'task', inquiries: 'inquiry' };
+const modalTitles = { leads: 'lead', tasks: 'task', inquiries: 'inquiry', projects: 'project' };
 
 function openModal(id) {
   editingId = id || null;
@@ -356,6 +467,7 @@ modalForm.addEventListener('submit', async (e) => {
     let saved;
     if (tab === 'leads') saved = id ? await Store.updateLead(id, data) : await Store.createLead(data);
     else if (tab === 'inquiries') saved = await Store.updateInquiry(id, data);
+    else if (tab === 'projects') saved = id ? await Store.updateProject(id, data) : await Store.createProject(data);
     else saved = id ? await Store.updateTask(id, data) : await Store.createTask(data);
     upsertInCache(tab, saved);
     closeModal();
@@ -373,6 +485,7 @@ modalDeleteBtn.addEventListener('click', async () => {
   const id = editingId;
   try {
     if (tab === 'leads') await Store.deleteLead(id);
+    else if (tab === 'projects') await Store.deleteProject(id);
     else await Store.deleteTask(id);
     removeFromCache(tab, id);
     closeModal();
@@ -435,6 +548,7 @@ function subscribeRealtime() {
     .on('postgres_changes', { event: '*', schema: 'public', table: 'leads' }, async () => { await refreshData(); renderBoard(); })
     .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, async () => { await refreshData(); renderBoard(); })
     .on('postgres_changes', { event: '*', schema: 'public', table: 'inquiries' }, async () => { await refreshData(); renderBoard(); })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'projects' }, async () => { await refreshData(); renderBoard(); })
     .subscribe();
 }
 

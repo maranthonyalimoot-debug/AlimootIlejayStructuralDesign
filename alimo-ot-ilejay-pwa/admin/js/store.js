@@ -33,6 +33,22 @@ const INQUIRY_STATUSES = [
 
 const ASSIGNEES = ['Mar Anthony', 'Samantha'];
 
+const PROJECT_STATUSES = [
+  { id: 'idecad_model', label: 'ideCAD Model Stage' },
+  { id: 'etabs', label: 'ETABS Stage' },
+  { id: 'cad', label: 'CAD Stage' },
+  { id: 'report_generation', label: 'Report Generation' },
+  { id: 'for_printing', label: 'For Printing' },
+  { id: 'closed', label: 'Closed' },
+];
+
+const PROJECT_SERVICES = [
+  { id: 'design_analysis', label: 'Structural Design and Analysis (Schematic to Construction Drawings)' },
+  { id: 'design_analysis_review', label: 'Structural Design and Analysis Review (New Project)' },
+];
+
+const PROJECT_ROLES = ['Architect', 'Owner', 'Engineer', 'Others'];
+
 // Only maps keys actually present on `lead` — a partial patch like
 // {stage: 'won'} (from moveLead/drag-and-drop) must not turn the *other*,
 // unmentioned fields into explicit nulls that overwrite existing data.
@@ -128,6 +144,38 @@ function inquirySummary(inq) {
   return lines.join('\n');
 }
 
+// Same partial-patch safety as leadToRow/taskToRow above.
+function projectToRow(project) {
+  const row = {};
+  if ('projectId' in project) row.project_code = project.projectId;
+  if ('principalOfRecord' in project) row.principal_of_record = project.principalOfRecord || null;
+  if ('projectName' in project) row.project_name = project.projectName;
+  if ('clientName' in project) row.client_name = project.clientName;
+  if ('description' in project) row.description = project.description || null;
+  if ('serviceAvailed' in project) row.service_availed = project.serviceAvailed;
+  if ('contractCost' in project) row.contract_cost = project.contractCost || null;
+  if ('downpayment' in project) row.downpayment = project.downpayment || null;
+  if ('downpaymentDate' in project) row.downpayment_date = project.downpaymentDate || null;
+  if ('finalPayment' in project) row.final_payment = project.finalPayment || null;
+  if ('finalPaymentDate' in project) row.final_payment_date = project.finalPaymentDate || null;
+  if ('submissionDate' in project) row.submission_date = project.submissionDate || null;
+  if ('status' in project) row.status = project.status;
+  if ('printingDeliveryCost' in project) row.printing_delivery_cost = project.printingDeliveryCost || null;
+  return row;
+}
+function rowToProject(row) {
+  return {
+    id: row.id, projectId: row.project_code, principalOfRecord: row.principal_of_record,
+    projectName: row.project_name, clientName: row.client_name, description: row.description,
+    serviceAvailed: row.service_availed, contractCost: row.contract_cost,
+    downpayment: row.downpayment, downpaymentDate: row.downpayment_date,
+    finalPayment: row.final_payment, finalPaymentDate: row.final_payment_date,
+    submissionDate: row.submission_date, status: row.status,
+    printingDeliveryCost: row.printing_delivery_cost,
+    createdAt: row.created_at, updatedAt: row.updated_at,
+  };
+}
+
 function orThrow({ data, error }) {
   if (error) throw error;
   return data;
@@ -135,6 +183,7 @@ function orThrow({ data, error }) {
 
 const Store = {
   LEAD_STAGES, TASK_STATUSES, TASK_CATEGORIES, INQUIRY_STATUSES, ASSIGNEES,
+  PROJECT_STATUSES, PROJECT_SERVICES, PROJECT_ROLES,
 
   async listLeads() {
     const rows = orThrow(await sb.from('leads').select('*').order('created_at', { ascending: true }));
@@ -187,6 +236,25 @@ const Store = {
   },
   moveInquiry(id, status) { return this.updateInquiry(id, { status }); },
   async deleteInquiry(id) { orThrow(await sb.from('inquiries').delete().eq('id', id)); },
+
+  async listProjects() {
+    const rows = orThrow(await sb.from('projects').select('*').order('created_at', { ascending: true }));
+    return rows.map(rowToProject);
+  },
+  async createProject(data) {
+    const row = { status: 'idecad_model', serviceAvailed: PROJECT_SERVICES[0].id, ...data };
+    const rows = orThrow(await sb.from('projects').insert(projectToRow(row)).select());
+    return rowToProject(rows[0]);
+  },
+  async updateProject(id, patch) {
+    const rows = orThrow(
+      await sb.from('projects').update({ ...projectToRow({ ...patch }), updated_at: new Date().toISOString() })
+        .eq('id', id).select()
+    );
+    return rows[0] ? rowToProject(rows[0]) : null;
+  },
+  moveProject(id, status) { return this.updateProject(id, { status }); },
+  async deleteProject(id) { orThrow(await sb.from('projects').delete().eq('id', id)); },
 
   // Turns a triaged inquiry into a workable lead card, folding the extra
   // fields into notes, and marks the inquiry converted so it isn't worked twice.
