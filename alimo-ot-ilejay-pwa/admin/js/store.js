@@ -20,6 +20,12 @@ const TASK_STATUSES = [
   { id: 'done', label: 'Done' },
 ];
 
+const INQUIRY_STATUSES = [
+  { id: 'new', label: 'New' },
+  { id: 'converted', label: 'Converted' },
+  { id: 'archived', label: 'Archived' },
+];
+
 const ASSIGNEES = ['Mar Anthony', 'Samantha'];
 
 // Only maps keys actually present on `lead` — a partial patch like
@@ -63,13 +69,65 @@ function rowToTask(row) {
   };
 }
 
+// Inquiries are read-only on the way in (the public form inserts them
+// directly) — admin.js only ever patches status/adminNotes, so this is the
+// one write path we need, kept partial-patch-safe like leadToRow/taskToRow.
+function inquiryToRow(patch) {
+  const row = {};
+  if ('status' in patch) row.status = patch.status;
+  if ('adminNotes' in patch) row.admin_notes = patch.adminNotes || null;
+  if ('convertedLeadId' in patch) row.converted_lead_id = patch.convertedLeadId || null;
+  return row;
+}
+function rowToInquiry(row) {
+  return {
+    id: row.id, status: row.status,
+    firstName: row.first_name, lastName: row.last_name,
+    email: row.email, phone: row.phone, company: row.company, role: row.role,
+    projectName: row.project_name, projectLocation: row.project_location,
+    structuralSystem: row.structural_system, structureType: row.structure_type,
+    storeys: row.storeys, floorArea: row.floor_area,
+    scope: row.scope, geotech: row.geotech,
+    archPlans: row.arch_plans, archName: row.arch_name,
+    electricalPlans: row.electrical_plans, electricalName: row.electrical_name,
+    plumbingPlans: row.plumbing_plans, plumbingName: row.plumbing_name,
+    startDate: row.start_date, drawingsDate: row.drawings_date,
+    notes: row.notes, source: row.source, referrer: row.referrer,
+    adminNotes: row.admin_notes, convertedLeadId: row.converted_lead_id,
+    createdAt: row.created_at, updatedAt: row.updated_at,
+  };
+}
+
+// Folds everything a lead card doesn't have its own column for into a
+// readable notes block, so converting an inquiry doesn't lose context.
+function inquirySummary(inq) {
+  const lines = [];
+  if (inq.role) lines.push(`Role: ${inq.role}`);
+  if (inq.projectName) lines.push(`Project: ${inq.projectName}`);
+  if (inq.projectLocation) lines.push(`Location: ${inq.projectLocation}`);
+  const size = [inq.structuralSystem, inq.structureType].filter(Boolean).join(', ');
+  if (size) lines.push(`Structure: ${size}`);
+  if (inq.storeys) lines.push(`Storeys: ${inq.storeys}`);
+  if (inq.floorArea) lines.push(`Floor area: ${inq.floorArea} sq.m.`);
+  if (inq.scope) lines.push(`Scope: ${inq.scope}`);
+  if (inq.geotech) lines.push(`Geotech: ${inq.geotech}`);
+  if (inq.archPlans) lines.push(`Architectural plans: ${inq.archPlans}${inq.archName ? ` (${inq.archName})` : ''}`);
+  if (inq.electricalPlans) lines.push(`Electrical plans: ${inq.electricalPlans}${inq.electricalName ? ` (${inq.electricalName})` : ''}`);
+  if (inq.plumbingPlans) lines.push(`Plumbing plans: ${inq.plumbingPlans}${inq.plumbingName ? ` (${inq.plumbingName})` : ''}`);
+  if (inq.startDate) lines.push(`Target start: ${inq.startDate}`);
+  if (inq.drawingsDate) lines.push(`Drawings needed by: ${inq.drawingsDate}`);
+  if (inq.referrer) lines.push(`Referred by: ${inq.referrer}`);
+  if (inq.notes) lines.push(`Notes: ${inq.notes}`);
+  return lines.join('\n');
+}
+
 function orThrow({ data, error }) {
   if (error) throw error;
   return data;
 }
 
 const Store = {
-  LEAD_STAGES, TASK_STATUSES, ASSIGNEES,
+  LEAD_STAGES, TASK_STATUSES, INQUIRY_STATUSES, ASSIGNEES,
 
   async listLeads() {
     const rows = orThrow(await sb.from('leads').select('*').order('created_at', { ascending: true }));
@@ -108,4 +166,33 @@ const Store = {
   },
   moveTask(id, status) { return this.updateTask(id, { status }); },
   async deleteTask(id) { orThrow(await sb.from('tasks').delete().eq('id', id)); },
+
+  async listInquiries() {
+    const rows = orThrow(await sb.from('inquiries').select('*').order('created_at', { ascending: false }));
+    return rows.map(rowToInquiry);
+  },
+  async updateInquiry(id, patch) {
+    const rows = orThrow(
+      await sb.from('inquiries').update({ ...inquiryToRow(patch), updated_at: new Date().toISOString() })
+        .eq('id', id).select()
+    );
+    return rows[0] ? rowToInquiry(rows[0]) : null;
+  },
+  moveInquiry(id, status) { return this.updateInquiry(id, { status }); },
+  async deleteInquiry(id) { orThrow(await sb.from('inquiries').delete().eq('id', id)); },
+
+  // Turns a triaged inquiry into a workable lead card, folding the extra
+  // fields into notes, and marks the inquiry converted so it isn't worked twice.
+  async convertInquiryToLead(inquiry) {
+    const lead = await this.createLead({
+      name: `${inquiry.firstName} ${inquiry.lastName}`.trim(),
+      company: inquiry.company || '',
+      phone: inquiry.phone || '',
+      email: inquiry.email || '',
+      source: inquiry.source || 'Website inquiry',
+      notes: inquirySummary(inquiry),
+    });
+    await this.updateInquiry(inquiry.id, { status: 'converted', convertedLeadId: lead.id });
+    return lead;
+  },
 };

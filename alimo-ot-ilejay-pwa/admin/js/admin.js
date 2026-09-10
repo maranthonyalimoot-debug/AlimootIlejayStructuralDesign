@@ -1,9 +1,10 @@
 // ---- Admin dashboard ----
-let activeTab = 'leads'; // 'leads' | 'tasks'
+let activeTab = 'leads'; // 'leads' | 'tasks' | 'inquiries'
 let activeFilter = 'all';
 let editingId = null; // id currently being edited, or null when adding
 let leadsCache = [];
 let tasksCache = [];
+let inquiriesCache = [];
 let realtimeChannel = null;
 
 const tabsEl = document.getElementById('tabs');
@@ -22,6 +23,7 @@ const modalForm = document.getElementById('modalForm');
 const modalFields = document.getElementById('modalFields');
 const modalTitle = document.getElementById('modalTitle');
 const modalDeleteBtn = document.getElementById('modalDeleteBtn');
+const modalConvertBtn = document.getElementById('modalConvertBtn');
 const modalCancelBtn = document.getElementById('modalCancelBtn');
 
 function escapeHtml(str) {
@@ -40,7 +42,9 @@ function assigneeOptions(selected) {
 }
 
 function columnsFor(tab) {
-  return tab === 'leads' ? Store.LEAD_STAGES : Store.TASK_STATUSES;
+  if (tab === 'leads') return Store.LEAD_STAGES;
+  if (tab === 'inquiries') return Store.INQUIRY_STATUSES;
+  return Store.TASK_STATUSES;
 }
 
 function stageKey(tab) {
@@ -48,16 +52,23 @@ function stageKey(tab) {
 }
 
 function rowsFor(tab) {
-  const rows = tab === 'leads' ? leadsCache : tasksCache;
+  const rows = cacheFor(tab);
+  // Inquiries have no assignee (they haven't been picked up by anyone yet) —
+  // the assignee filter only applies to leads/tasks.
+  if (tab === 'inquiries') return rows;
   return activeFilter === 'all' ? rows : rows.filter(r => r.assignedTo === activeFilter);
 }
 
 async function refreshData() {
-  [leadsCache, tasksCache] = await Promise.all([Store.listLeads(), Store.listTasks()]);
+  [leadsCache, tasksCache, inquiriesCache] = await Promise.all([
+    Store.listLeads(), Store.listTasks(), Store.listInquiries(),
+  ]);
 }
 
 function cacheFor(tab) {
-  return tab === 'leads' ? leadsCache : tasksCache;
+  if (tab === 'leads') return leadsCache;
+  if (tab === 'inquiries') return inquiriesCache;
+  return tasksCache;
 }
 
 // Patch the local cache from a mutation's own response instead of
@@ -102,9 +113,25 @@ function renderBoard() {
 }
 
 function cardHtml(item) {
-  const moveOptions = (activeTab === 'leads' ? Store.LEAD_STAGES : Store.TASK_STATUSES)
+  const moveOptions = columnsFor(activeTab)
     .map(s => `<option value="${s.id}" ${s.id === item[stageKey(activeTab)] ? 'selected' : ''}>${s.label}</option>`)
     .join('');
+
+  if (activeTab === 'inquiries') {
+    const size = [item.structureType, item.storeys ? `${item.storeys} storeys` : '', item.floorArea ? `${item.floorArea} sq.m.` : '']
+      .filter(Boolean).join(' &middot; ');
+    return `
+      <div class="card" draggable="true" data-id="${item.id}">
+        <div class="card-title">${escapeHtml(`${item.firstName} ${item.lastName}`.trim())}</div>
+        ${item.company ? `<div class="card-sub">${escapeHtml(item.company)}${item.role ? ` &middot; ${escapeHtml(item.role)}` : ''}</div>` : ''}
+        <div class="card-meta">
+          ${item.scope ? `<span class="chip">${escapeHtml(item.scope)}</span>` : ''}
+          ${size ? `<span class="chip chip-muted">${size}</span>` : ''}
+        </div>
+        ${item.notes ? `<div class="card-notes">${escapeHtml(item.notes)}</div>` : ''}
+        <select class="move-select" data-id="${item.id}">${moveOptions}</select>
+      </div>`;
+  }
 
   if (activeTab === 'leads') {
     return `
@@ -132,6 +159,12 @@ function cardHtml(item) {
     </div>`;
 }
 
+function moveItem(tab, id, value) {
+  if (tab === 'leads') return Store.moveLead(id, value);
+  if (tab === 'inquiries') return Store.moveInquiry(id, value);
+  return Store.moveTask(id, value);
+}
+
 // ---- Card interactions: click to edit, select to move ----
 function attachCardHandlers() {
   board.querySelectorAll('.card').forEach(card => {
@@ -145,9 +178,7 @@ function attachCardHandlers() {
     sel.addEventListener('change', async () => {
       const tab = activeTab;
       try {
-        const updated = tab === 'leads'
-          ? await Store.moveLead(sel.dataset.id, sel.value)
-          : await Store.moveTask(sel.dataset.id, sel.value);
+        const updated = await moveItem(tab, sel.dataset.id, sel.value);
         upsertInCache(tab, updated);
       } catch (err) {
         alert(`Could not move this item: ${err.message || err}`);
@@ -175,9 +206,7 @@ function attachColumnDnD() {
       const tab = activeTab;
       dragId = null;
       try {
-        const updated = tab === 'leads'
-          ? await Store.moveLead(id, colBody.dataset.col)
-          : await Store.moveTask(id, colBody.dataset.col);
+        const updated = await moveItem(tab, id, colBody.dataset.col);
         upsertInCache(tab, updated);
       } catch (err) {
         alert(`Could not move this item: ${err.message || err}`);
@@ -192,6 +221,8 @@ tabButtons.forEach(btn => {
   btn.addEventListener('click', () => {
     activeTab = btn.dataset.tab;
     tabButtons.forEach(b => b.classList.toggle('active', b === btn));
+    // Inquiries only ever arrive via the public form — there's no "add" for them.
+    addBtn.hidden = activeTab === 'inquiries';
     addBtn.textContent = activeTab === 'leads' ? '+ Add lead' : '+ Add task';
     renderBoard();
   });
@@ -203,8 +234,43 @@ filterSelect.addEventListener('change', () => {
   renderBoard();
 });
 
+// A single read-only row in the inquiry detail view — omitted entirely when empty.
+function readonlyField(label, value) {
+  if (!value) return '';
+  return `<div class="field field-readonly"><label>${escapeHtml(label)}</label><div class="field-value">${escapeHtml(value)}</div></div>`;
+}
+
 // ---- Modal (shared for add + edit, fields depend on active tab) ----
 function fieldsHtmlFor(type, item) {
+  if (type === 'inquiries') {
+    // Inquiries are a submitted record, not something admins hand-edit — every
+    // field is read-only except the triage bits (status, internal notes).
+    const size = [item.structuralSystem, item.structureType].filter(Boolean).join(', ');
+    return `
+      ${readonlyField('Name', `${item.firstName} ${item.lastName}`.trim())}
+      ${readonlyField('Email', item.email)}
+      ${readonlyField('Phone', item.phone)}
+      ${readonlyField('Company / Firm', item.company)}
+      ${readonlyField('Role', item.role)}
+      ${readonlyField('Project', item.projectName)}
+      ${readonlyField('Location', item.projectLocation)}
+      ${readonlyField('Structural system / type', size)}
+      ${readonlyField('Storeys', item.storeys)}
+      ${readonlyField('Floor area (sq.m.)', item.floorArea)}
+      ${readonlyField('Scope of work', item.scope)}
+      ${readonlyField('Geotechnical report', item.geotech)}
+      ${readonlyField('Architectural plans', item.archPlans ? `${item.archPlans}${item.archName ? ` (${item.archName})` : ''}` : '')}
+      ${readonlyField('Electrical plans', item.electricalPlans ? `${item.electricalPlans}${item.electricalName ? ` (${item.electricalName})` : ''}` : '')}
+      ${readonlyField('Plumbing plans', item.plumbingPlans ? `${item.plumbingPlans}${item.plumbingName ? ` (${item.plumbingName})` : ''}` : '')}
+      ${readonlyField('Target start date', formatDate(item.startDate))}
+      ${readonlyField('Drawings needed by', formatDate(item.drawingsDate))}
+      ${readonlyField('How they heard about us', item.source)}
+      ${readonlyField('Referred by', item.referrer)}
+      ${readonlyField('Notes from client', item.notes)}
+      <label>Status<select name="status">${Store.INQUIRY_STATUSES.map(s => `<option value="${s.id}" ${s.id === item.status ? 'selected' : ''}>${s.label}</option>`).join('')}</select></label>
+      <label>Internal notes<textarea name="adminNotes" rows="3">${escapeHtml(item.adminNotes)}</textarea></label>
+    `;
+  }
   if (type === 'leads') {
     return `
       <label>Name<input name="name" required value="${escapeHtml(item?.name)}"></label>
@@ -226,15 +292,20 @@ function fieldsHtmlFor(type, item) {
   `;
 }
 
+const modalTitles = { leads: 'lead', tasks: 'task', inquiries: 'inquiry' };
+
 function openModal(id) {
   editingId = id || null;
-  const rows = activeTab === 'leads' ? leadsCache : tasksCache;
+  const rows = cacheFor(activeTab);
   const item = editingId ? rows.find(r => r.id === editingId) : null;
-  modalTitle.textContent = editingId
-    ? (activeTab === 'leads' ? 'Edit lead' : 'Edit task')
-    : (activeTab === 'leads' ? 'Add lead' : 'Add task');
+  modalTitle.textContent = activeTab === 'inquiries'
+    ? 'Inquiry details'
+    : (editingId ? `Edit ${modalTitles[activeTab]}` : `Add ${modalTitles[activeTab]}`);
   modalFields.innerHTML = fieldsHtmlFor(activeTab, item);
-  modalDeleteBtn.hidden = !editingId;
+  // Inquiries are never hand-deleted (archive via status instead, so the
+  // original submission stays on record) and only offer Convert-to-Lead.
+  modalDeleteBtn.hidden = !editingId || activeTab === 'inquiries';
+  modalConvertBtn.hidden = !(activeTab === 'inquiries' && item && item.status !== 'converted');
   modalOverlay.hidden = false;
 }
 
@@ -254,9 +325,10 @@ modalForm.addEventListener('submit', async (e) => {
   const tab = activeTab;
   const id = editingId;
   try {
-    const saved = tab === 'leads'
-      ? (id ? await Store.updateLead(id, data) : await Store.createLead(data))
-      : (id ? await Store.updateTask(id, data) : await Store.createTask(data));
+    let saved;
+    if (tab === 'leads') saved = id ? await Store.updateLead(id, data) : await Store.createLead(data);
+    else if (tab === 'inquiries') saved = await Store.updateInquiry(id, data);
+    else saved = id ? await Store.updateTask(id, data) : await Store.createTask(data);
     upsertInCache(tab, saved);
     closeModal();
     renderBoard();
@@ -279,6 +351,22 @@ modalDeleteBtn.addEventListener('click', async () => {
     renderBoard();
   } catch (err) {
     alert(`Could not delete: ${err.message || err}`);
+  }
+});
+
+modalConvertBtn.addEventListener('click', async () => {
+  if (!editingId) return;
+  const inquiry = inquiriesCache.find(r => r.id === editingId);
+  if (!inquiry) return;
+  try {
+    const lead = await Store.convertInquiryToLead(inquiry);
+    upsertInCache('leads', lead);
+    upsertInCache('inquiries', { ...inquiry, status: 'converted', convertedLeadId: lead.id });
+    closeModal();
+    renderBoard();
+    alert(`Converted — "${lead.name}" was added to Leads.`);
+  } catch (err) {
+    alert(`Could not convert this inquiry: ${err.message || err}`);
   }
 });
 
@@ -318,6 +406,7 @@ function subscribeRealtime() {
   realtimeChannel = sb.channel('admin-board')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'leads' }, async () => { await refreshData(); renderBoard(); })
     .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, async () => { await refreshData(); renderBoard(); })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'inquiries' }, async () => { await refreshData(); renderBoard(); })
     .subscribe();
 }
 

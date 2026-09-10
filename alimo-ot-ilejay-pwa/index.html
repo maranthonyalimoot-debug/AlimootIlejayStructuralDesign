@@ -256,6 +256,13 @@
 
         <div class="form-section active">
           <div class="form-section-title">01 &middot; Client Information</div>
+          <!-- Honeypot: invisible to real visitors (off-screen, unreachable by tab,
+               untouched by autofill), but a plain form field simple bots will still fill in.
+               If it has a value on submit, we quietly drop the submission. -->
+          <div class="field field-hp" aria-hidden="true">
+            <label for="companyWebsite">Company Website</label>
+            <input id="companyWebsite" name="companyWebsite" type="text" tabindex="-1" autocomplete="off">
+          </div>
           <div class="form-row">
             <div class="field">
               <label for="fname">First Name <span class="req">*</span></label>
@@ -462,6 +469,8 @@
   </div>
 </footer>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabaseClient.js"></script>
 <script src="js/main.js"></script>
 
 </body>

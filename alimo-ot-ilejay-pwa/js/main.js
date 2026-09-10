@@ -29,7 +29,7 @@ revealEls.forEach(el => io.observe(el));
 // ---- Footer year ----
 document.getElementById('year').textContent = new Date().getFullYear();
 
-// ---- Contact form: step-by-step wizard (prototype only — no backend wired up) ----
+// ---- Contact form: step-by-step wizard, submits to Supabase `inquiries` ----
 (() => {
   const form = document.getElementById('contactForm');
   if (!form) return;
@@ -164,12 +164,34 @@ document.getElementById('year').textContent = new Date().getFullYear();
     });
   }
 
-  form.addEventListener('submit', (e) => {
-    e.preventDefault();
-    // TODO: replace with a real submission, e.g.:
-    // const data = Object.fromEntries(new FormData(e.target));
-    // fetch('/api/inquiries', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
-    alert('Thanks — your inquiry has been received. We\'ll follow up within 1 business day.');
+  // Wizard field name -> `inquiries` column. Anything not listed here
+  // (notably the honeypot) is deliberately left out of the row we insert.
+  const FIELD_TO_COLUMN = {
+    fname: 'first_name', lname: 'last_name', email: 'email', phone: 'phone',
+    company: 'company', role: 'role',
+    pname: 'project_name', plocation: 'project_location',
+    ptype: 'structural_system', stype: 'structure_type',
+    storeys: 'storeys', floorarea: 'floor_area',
+    scope: 'scope', geotech: 'geotech',
+    archPlans: 'arch_plans', archName: 'arch_name',
+    electricalPlans: 'electrical_plans', electricalName: 'electrical_name',
+    plumbingPlans: 'plumbing_plans', plumbingName: 'plumbing_name',
+    startdate: 'start_date', drawingsdate: 'drawings_date',
+    msg: 'notes', source: 'source', referrer: 'referrer',
+  };
+  const NUMERIC_COLUMNS = new Set(['storeys', 'floor_area']);
+
+  function inquiryRowFromForm(formData) {
+    const row = {};
+    for (const [field, column] of Object.entries(FIELD_TO_COLUMN)) {
+      const value = (formData.get(field) || '').toString().trim();
+      if (!value) continue; // omit empty optional fields rather than storing ''
+      row[column] = NUMERIC_COLUMNS.has(column) ? Number(value) : value;
+    }
+    return row;
+  }
+
+  function resetWizard() {
     form.reset();
     if (scopeNote) scopeNote.textContent = '';
     if (referrerField) referrerField.hidden = true;
@@ -180,6 +202,31 @@ document.getElementById('year').textContent = new Date().getFullYear();
     if (coordinationSummary) coordinationSummary.textContent = '';
     current = 0;
     showStep(current);
+  }
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const formData = new FormData(form);
+
+    // Honeypot: real visitors never see or reach this field. If it's filled,
+    // silently pretend to succeed instead of alerting a bot to the filter.
+    if ((formData.get('companyWebsite') || '').toString().trim()) {
+      alert('Thanks — your inquiry has been received. We\'ll follow up within 1 business day.');
+      resetWizard();
+      return;
+    }
+
+    submitBtn.disabled = true;
+    try {
+      const { error } = await sb.from('inquiries').insert(inquiryRowFromForm(formData));
+      if (error) throw error;
+      alert('Thanks — your inquiry has been received. We\'ll follow up within 1 business day.');
+      resetWizard();
+    } catch (err) {
+      alert('Sorry — something went wrong sending your inquiry. Please try again, or email us directly.');
+    } finally {
+      submitBtn.disabled = false;
+    }
   });
 })();
 

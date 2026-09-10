@@ -274,6 +274,10 @@ form{background:#fff;padding:44px;border:1.5px solid var(--line);}
 .field-note{margin-top:12px;padding:14px 16px;background:var(--bg-alt);border-left:2px solid var(--copper);font-size:13px;line-height:1.6;color:var(--body);}
 .field-note:empty{display:none;padding:0;margin-top:0;}
 .form-section-title{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--copper);font-weight:700;margin-bottom:20px;}
+
+/* Honeypot: off-screen (not display:none) so it still renders for simple bots
+   to fill in, but is invisible and unreachable for real visitors. */
+.field-hp{position:absolute;left:-9999px;top:-9999px;width:1px;height:1px;overflow:hidden;}
 .form-section{display:none;}
 .form-section.active{display:block;}
 
