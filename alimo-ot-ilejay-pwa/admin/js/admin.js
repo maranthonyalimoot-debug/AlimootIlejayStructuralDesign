@@ -56,6 +56,27 @@ async function refreshData() {
   [leadsCache, tasksCache] = await Promise.all([Store.listLeads(), Store.listTasks()]);
 }
 
+function cacheFor(tab) {
+  return tab === 'leads' ? leadsCache : tasksCache;
+}
+
+// Patch the local cache from a mutation's own response instead of
+// round-tripping through refreshData() — that extra fetch can race/fail
+// (e.g. a transient 401 right after sign-in) and silently leave the board
+// looking like nothing saved, even though the write already succeeded.
+function upsertInCache(tab, item) {
+  if (!item) return;
+  const cache = cacheFor(tab);
+  const idx = cache.findIndex(r => r.id === item.id);
+  if (idx === -1) cache.push(item); else cache[idx] = item;
+}
+
+function removeFromCache(tab, id) {
+  const cache = cacheFor(tab);
+  const idx = cache.findIndex(r => r.id === id);
+  if (idx !== -1) cache.splice(idx, 1);
+}
+
 // ---- Board rendering ----
 function renderBoard() {
   const cols = columnsFor(activeTab);
@@ -122,9 +143,15 @@ function attachCardHandlers() {
   board.querySelectorAll('.move-select').forEach(sel => {
     sel.addEventListener('click', e => e.stopPropagation());
     sel.addEventListener('change', async () => {
-      if (activeTab === 'leads') await Store.moveLead(sel.dataset.id, sel.value);
-      else await Store.moveTask(sel.dataset.id, sel.value);
-      await refreshData();
+      const tab = activeTab;
+      try {
+        const updated = tab === 'leads'
+          ? await Store.moveLead(sel.dataset.id, sel.value)
+          : await Store.moveTask(sel.dataset.id, sel.value);
+        upsertInCache(tab, updated);
+      } catch (err) {
+        alert(`Could not move this item: ${err.message || err}`);
+      }
       renderBoard();
     });
   });
@@ -145,10 +172,16 @@ function attachColumnDnD() {
       colBody.classList.remove('drag-over');
       if (!dragId) return;
       const id = dragId;
+      const tab = activeTab;
       dragId = null;
-      if (activeTab === 'leads') await Store.moveLead(id, colBody.dataset.col);
-      else await Store.moveTask(id, colBody.dataset.col);
-      await refreshData();
+      try {
+        const updated = tab === 'leads'
+          ? await Store.moveLead(id, colBody.dataset.col)
+          : await Store.moveTask(id, colBody.dataset.col);
+        upsertInCache(tab, updated);
+      } catch (err) {
+        alert(`Could not move this item: ${err.message || err}`);
+      }
       renderBoard();
     });
   });
@@ -218,24 +251,35 @@ modalOverlay.addEventListener('click', (e) => { if (e.target === modalOverlay) c
 modalForm.addEventListener('submit', async (e) => {
   e.preventDefault();
   const data = Object.fromEntries(new FormData(modalForm));
-  if (activeTab === 'leads') {
-    editingId ? await Store.updateLead(editingId, data) : await Store.createLead(data);
-  } else {
-    editingId ? await Store.updateTask(editingId, data) : await Store.createTask(data);
+  const tab = activeTab;
+  const id = editingId;
+  try {
+    const saved = tab === 'leads'
+      ? (id ? await Store.updateLead(id, data) : await Store.createLead(data))
+      : (id ? await Store.updateTask(id, data) : await Store.createTask(data));
+    upsertInCache(tab, saved);
+    closeModal();
+    renderBoard();
+  } catch (err) {
+    // Leave the modal open so the user's input isn't lost and they can retry.
+    alert(`Could not save: ${err.message || err}`);
   }
-  closeModal();
-  await refreshData();
-  renderBoard();
 });
 
 modalDeleteBtn.addEventListener('click', async () => {
   if (!editingId) return;
   if (!confirm('Delete this item? This cannot be undone.')) return;
-  if (activeTab === 'leads') await Store.deleteLead(editingId);
-  else await Store.deleteTask(editingId);
-  closeModal();
-  await refreshData();
-  renderBoard();
+  const tab = activeTab;
+  const id = editingId;
+  try {
+    if (tab === 'leads') await Store.deleteLead(id);
+    else await Store.deleteTask(id);
+    removeFromCache(tab, id);
+    closeModal();
+    renderBoard();
+  } catch (err) {
+    alert(`Could not delete: ${err.message || err}`);
+  }
 });
 
 // ---- Auth gate ----
