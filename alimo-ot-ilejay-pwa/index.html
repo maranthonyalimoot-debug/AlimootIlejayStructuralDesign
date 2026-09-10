@@ -246,40 +246,210 @@
       </div>
 
       <form class="reveal" id="contactForm">
-        <div class="form-row">
+
+        <p class="form-intro">It's quick and easy — just fill out the form below, a few short steps at a time, so we can get back to you with the right plan for your project.</p>
+
+        <div class="wizard-progress">
+          <div class="wizard-progress-track"><div class="wizard-progress-fill" id="wizardProgressFill"></div></div>
+          <div class="wizard-progress-label"><span id="wizardStepLabel">Step 1 of 5</span></div>
+        </div>
+
+        <div class="form-section active">
+          <div class="form-section-title">01 &middot; Client Information</div>
+          <div class="form-row">
+            <div class="field">
+              <label for="fname">First Name <span class="req">*</span></label>
+              <input id="fname" name="fname" type="text" required>
+            </div>
+            <div class="field">
+              <label for="lname">Last Name <span class="req">*</span></label>
+              <input id="lname" name="lname" type="text" required>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="field">
+              <label for="email">Email <span class="req">*</span></label>
+              <input id="email" name="email" type="email" required>
+            </div>
+            <div class="field">
+              <label for="phone">Phone</label>
+              <input id="phone" name="phone" type="tel">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="field">
+              <label for="company">Company / Firm Name</label>
+              <input id="company" name="company" type="text">
+            </div>
+            <div class="field">
+              <label for="role">Your Role <span class="req">*</span></label>
+              <select id="role" name="role" required>
+                <option value="">Select one</option>
+                <option>Architect</option>
+                <option>Developer / Owner</option>
+                <option>Contractor</option>
+                <option>Engineer</option>
+                <option>Other</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <div class="form-section-title">02 &middot; Project Details</div>
+          <div class="form-row">
+            <div class="field">
+              <label for="pname">Project Name or Working Title <span class="hint">(optional)</span></label>
+              <input id="pname" name="pname" type="text">
+            </div>
+            <div class="field">
+              <label for="plocation">Project Location <span class="hint">(city, province — optional)</span></label>
+              <input id="plocation" name="plocation" type="text">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="field">
+              <label for="ptype">Structural System</label>
+              <select id="ptype" name="ptype">
+                <option>Reinforced Concrete Structure</option>
+                <option>Steel Structure</option>
+                <option>Mixed</option>
+                <option>Not Sure Yet</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="stype">Type of Structure</label>
+              <select id="stype" name="stype">
+                <option>Residential</option>
+                <option>Commercial</option>
+                <option>Mixed-use</option>
+                <option>Institutional</option>
+                <option>Industrial</option>
+                <option>Other</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="field">
+              <label for="storeys">Estimated Number of Storeys <span class="req">*</span></label>
+              <input id="storeys" name="storeys" type="number" min="1" step="1" required>
+            </div>
+            <div class="field">
+              <label for="floorarea">Approx. Gross Floor Area <span class="hint">(sq.m.)</span> <span class="req">*</span></label>
+              <input id="floorarea" name="floorarea" type="number" min="1" step="1" required>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <div class="form-section-title">03 &middot; Scope of Work</div>
           <div class="field">
-            <label for="fname">First Name <span class="req">*</span></label>
-            <input id="fname" name="fname" type="text" required>
+            <label for="scope">Service Needed <span class="req">*</span></label>
+            <select id="scope" name="scope" required>
+              <option value="">Select a service</option>
+              <option>Structural Design and Analysis (Schematic to Construction Drawings)</option>
+              <option>Structural Design and Analysis Review (New Project)</option>
+            </select>
+            <div class="field-note" id="scopeNote"></div>
           </div>
           <div class="field">
-            <label for="lname">Last Name <span class="req">*</span></label>
-            <input id="lname" name="lname" type="text" required>
+            <label for="geotech">Geotechnical Report</label>
+            <select id="geotech" name="geotech">
+              <option value="">Select one</option>
+              <option>Geotech report available</option>
+              <option>No geotech report yet</option>
+              <option>Not sure</option>
+            </select>
+          </div>
+
+          <div id="alliedPlansGroup" hidden>
+            <div class="field-note">Let us know what's already in place — for anything not yet ready, we can coordinate with our partner architects and engineers to complete it for you.</div>
+
+            <div class="field">
+              <label for="archPlans">Architectural Plans <span class="req">*</span></label>
+              <select id="archPlans" name="archPlans" required>
+                <option value="">Select one</option>
+                <option>Plans are ready</option>
+                <option>Need this arranged</option>
+              </select>
+            </div>
+            <div class="field" id="archNameField" hidden>
+              <label for="archName">Name of Architect <span class="hint">(optional)</span></label>
+              <input id="archName" name="archName" type="text">
+            </div>
+
+            <div class="field">
+              <label for="electricalPlans">Electrical Plans <span class="req">*</span></label>
+              <select id="electricalPlans" name="electricalPlans" required>
+                <option value="">Select one</option>
+                <option>Plans are ready</option>
+                <option>Need this arranged</option>
+              </select>
+            </div>
+            <div class="field" id="electricalNameField" hidden>
+              <label for="electricalName">Name of Electrical Engineer <span class="hint">(optional)</span></label>
+              <input id="electricalName" name="electricalName" type="text">
+            </div>
+
+            <div class="field">
+              <label for="plumbingPlans">Plumbing Plans <span class="req">*</span></label>
+              <select id="plumbingPlans" name="plumbingPlans" required>
+                <option value="">Select one</option>
+                <option>Plans are ready</option>
+                <option>Need this arranged</option>
+              </select>
+            </div>
+            <div class="field" id="plumbingNameField" hidden>
+              <label for="plumbingName">Name of Plumbing Engineer <span class="hint">(optional)</span></label>
+              <input id="plumbingName" name="plumbingName" type="text">
+            </div>
+
+            <div class="field-note" id="coordinationSummary"></div>
           </div>
         </div>
-        <div class="field">
-          <label for="email">Email <span class="req">*</span></label>
-          <input id="email" name="email" type="email" required>
+
+        <div class="form-section">
+          <div class="form-section-title">04 &middot; Timeline</div>
+          <div class="form-row">
+            <div class="field">
+              <label for="startdate">Target Construction Start Date <span class="hint">(approximate)</span></label>
+              <input id="startdate" name="startdate" type="date">
+            </div>
+            <div class="field">
+              <label for="drawingsdate">Structural Drawings Needed By <span class="hint">(approximate)</span></label>
+              <input id="drawingsdate" name="drawingsdate" type="date">
+            </div>
+          </div>
         </div>
-        <div class="field">
-          <label for="phone">Phone</label>
-          <input id="phone" name="phone" type="tel">
+
+        <div class="form-section">
+          <div class="form-section-title">05 &middot; Additional Notes</div>
+          <div class="field">
+            <label for="msg">Additional Notes <span class="hint">(optional)</span></label>
+            <textarea id="msg" name="msg" placeholder="Anything else we should know — specific structural concerns, constraints, or questions?"></textarea>
+          </div>
+          <div class="field">
+            <label for="source">How did you hear about us?</label>
+            <select id="source" name="source">
+              <option value="">Select one</option>
+              <option>Referral</option>
+              <option>LinkedIn</option>
+              <option>Google Search</option>
+              <option>Colleague / Architect</option>
+              <option>Other</option>
+            </select>
+          </div>
+          <div class="field" id="referrerField" hidden>
+            <label for="referrer">Who referred you? <span class="hint">(optional)</span></label>
+            <input id="referrer" name="referrer" type="text" placeholder="Name — or 'Prefer not to say'">
+          </div>
         </div>
-        <div class="field">
-          <label for="ptype">Project Type</label>
-          <select id="ptype" name="ptype">
-            <option>Reinforced Concrete Structure</option>
-            <option>Steel Structure</option>
-            <option>Mixed</option>
-            <option>Not Sure Yet</option>
-            <option>Design Review</option>
-            <option>Analysis Report</option>
-          </select>
+
+        <div class="form-nav">
+          <button type="button" class="btn btn-outline" id="formBack">Back</button>
+          <button type="button" class="btn btn-primary" id="formNext">Next</button>
+          <button type="submit" class="btn btn-primary" id="formSubmit">Send Inquiry</button>
         </div>
-        <div class="field">
-          <label for="msg">Project Goals <span class="req">*</span></label>
-          <textarea id="msg" name="msg" required placeholder="Tell us about the scope, location, and timeline."></textarea>
-        </div>
-        <button type="submit" class="btn btn-primary">Send Inquiry</button>
       </form>
     </div>
   </section>

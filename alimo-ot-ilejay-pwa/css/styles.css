@@ -259,6 +259,7 @@ header.scrolled{box-shadow:0 4px 16px rgba(10,10,12,.06);}
 .social-row svg{width:16px;height:16px;}
 
 form{background:#fff;padding:44px;border:1.5px solid var(--line);}
+.form-intro{font-size:14px;color:var(--muted);line-height:1.6;margin-bottom:28px;}
 .form-row{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
 .field{margin-bottom:22px;}
 .field label{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:9px;font-weight:700;}
@@ -269,6 +270,22 @@ form{background:#fff;padding:44px;border:1.5px solid var(--line);}
 .field textarea{resize:vertical;min-height:90px;}
 .field input:focus,.field select:focus,.field textarea:focus{outline:none;border-bottom-color:var(--copper);}
 .field .req{color:var(--copper);}
+.field .hint{color:var(--muted);text-transform:none;letter-spacing:0;font-weight:400;}
+.field-note{margin-top:12px;padding:14px 16px;background:var(--bg-alt);border-left:2px solid var(--copper);font-size:13px;line-height:1.6;color:var(--body);}
+.field-note:empty{display:none;padding:0;margin-top:0;}
+.form-section-title{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--copper);font-weight:700;margin-bottom:20px;}
+.form-section{display:none;}
+.form-section.active{display:block;}
+
+.wizard-progress{margin-bottom:32px;}
+.wizard-progress-track{height:3px;background:var(--line);border-radius:2px;overflow:hidden;}
+.wizard-progress-fill{height:100%;width:20%;background:var(--copper);border-radius:2px;transition:width .3s ease;}
+.wizard-progress-label{margin-top:10px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700;}
+
+.form-nav{display:flex;gap:14px;margin-top:6px;}
+.form-nav .btn{width:auto;flex:1;margin-top:0;}
+#formBack{display:none;}
+#formSubmit{display:none;}
 form .btn{width:100%;margin-top:6px;}
 
 /* ---------- Footer ---------- */
