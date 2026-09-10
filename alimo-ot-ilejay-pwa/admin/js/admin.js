@@ -10,6 +10,7 @@ let realtimeChannel = null;
 const tabsEl = document.getElementById('tabs');
 const tabButtons = document.querySelectorAll('.tab-btn');
 const board = document.getElementById('board');
+const taskSummary = document.getElementById('taskSummary');
 const addBtn = document.getElementById('addBtn');
 const filterSelect = document.getElementById('filterSelect');
 const banner = document.getElementById('banner');
@@ -39,6 +40,17 @@ function formatDate(iso) {
 
 function assigneeOptions(selected) {
   return Store.ASSIGNEES.map(a => `<option value="${a}" ${a === selected ? 'selected' : ''}>${a}</option>`).join('');
+}
+
+// Local YYYY-MM-DD "today", comparable lexically against the date-only
+// targetDate string straight from the DB — no timezone parsing needed.
+function todayStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function isOverdue(task) {
+  return !!task.targetDate && task.targetDate < todayStr() && task.status !== 'done';
 }
 
 function columnsFor(tab) {
@@ -110,6 +122,22 @@ function renderBoard() {
 
   attachColumnDnD();
   attachCardHandlers();
+  renderTaskSummary();
+}
+
+// ---- Task summary (To Do / In Progress / Overdue counts) ----
+function renderTaskSummary() {
+  taskSummary.hidden = activeTab !== 'tasks';
+  if (activeTab !== 'tasks') return;
+  const rows = rowsFor('tasks');
+  const todo = rows.filter(r => r.status === 'todo').length;
+  const inProgress = rows.filter(r => r.status === 'inprogress').length;
+  const overdue = rows.filter(isOverdue).length;
+  taskSummary.innerHTML = `
+    <div class="summary-stat"><span class="summary-num">${todo}</span><span class="summary-label">To Do</span></div>
+    <div class="summary-stat"><span class="summary-num">${inProgress}</span><span class="summary-label">In Progress</span></div>
+    <div class="summary-stat summary-stat-danger"><span class="summary-num">${overdue}</span><span class="summary-label">Overdue</span></div>
+  `;
 }
 
 function cardHtml(item) {
@@ -147,15 +175,14 @@ function cardHtml(item) {
       </div>`;
   }
 
+  const overdue = isOverdue(item);
+  const titleClass = item.category === 'technical' ? 'card-title-technical' : 'card-title-admin';
   return `
     <div class="card" draggable="true" data-id="${item.id}">
-      <div class="card-title">${escapeHtml(item.title)}</div>
+      <div class="card-title ${titleClass}">${escapeHtml(item.title)}</div>
       <div class="card-meta">
-        <span class="chip">${escapeHtml(item.assignedTo)}</span>
-        ${item.targetDate ? `<span class="chip chip-muted">Due ${formatDate(item.targetDate)}</span>` : ''}
+        ${item.targetDate ? `<span class="chip ${overdue ? 'chip-danger' : 'chip-muted'}">Due ${formatDate(item.targetDate)}</span>` : ''}
       </div>
-      ${item.notes ? `<div class="card-notes">${escapeHtml(item.notes)}</div>` : ''}
-      <select class="move-select" data-id="${item.id}">${moveOptions}</select>
     </div>`;
 }
 
@@ -286,6 +313,7 @@ function fieldsHtmlFor(type, item) {
   return `
     <label>Task<input name="title" required value="${escapeHtml(item?.title)}"></label>
     <label>Assigned to<select name="assignedTo">${assigneeOptions(item?.assignedTo)}</select></label>
+    <label>Category<select name="category">${Store.TASK_CATEGORIES.map(c => `<option value="${c.id}" ${item ? (c.id === item.category ? 'selected' : '') : (c.id === 'admin' ? 'selected' : '')}>${c.label}</option>`).join('')}</select></label>
     <label>Target finish date<input type="date" name="targetDate" value="${escapeHtml(item?.targetDate)}"></label>
     <label>Status<select name="status">${Store.TASK_STATUSES.map(s => `<option value="${s.id}" ${item && s.id === item.status ? 'selected' : ''}>${s.label}</option>`).join('')}</select></label>
     <label>Notes<textarea name="notes" rows="3">${escapeHtml(item?.notes)}</textarea></label>

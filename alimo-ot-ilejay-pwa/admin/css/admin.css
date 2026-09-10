@@ -47,6 +47,19 @@ body{background:var(--bg-alt);}
 }
 .btn-sm{padding:9px 18px;font-size:12px;}
 
+.task-summary{
+  display:flex;gap:10px;flex-wrap:wrap;
+  padding:20px 32px 0;
+}
+.summary-stat{
+  display:flex;align-items:baseline;gap:8px;
+  background:var(--bg);border:1px solid var(--line);border-radius:var(--radius);
+  padding:10px 16px;
+}
+.summary-num{font-size:20px;font-weight:800;color:var(--ink);}
+.summary-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);}
+.summary-stat-danger .summary-num{color:#b3261e;}
+
 .board{
   display:flex;gap:16px;align-items:flex-start;
   padding:20px 32px 48px;overflow-x:auto;
@@ -76,6 +89,8 @@ body{background:var(--bg-alt);}
 .card:hover{box-shadow:0 4px 14px rgba(10,10,12,.08);}
 .card.dragging{opacity:.4;}
 .card-title{font-size:13.5px;font-weight:700;color:var(--ink);}
+.card-title-admin{background:#e3f3e6;color:#1e7d32;padding:4px 8px;border-radius:var(--radius);}
+.card-title-technical{background:#dce8fb;color:#1d4ed8;padding:4px 8px;border-radius:var(--radius);}
 .card-sub{font-size:12px;color:var(--muted);margin-top:-4px;}
 .card-meta{display:flex;flex-wrap:wrap;gap:6px;}
 .chip{
@@ -83,6 +98,7 @@ body{background:var(--bg-alt);}
   background:var(--steel);color:#fff;padding:3px 8px;border-radius:var(--radius);
 }
 .chip-muted{background:var(--bg-alt);color:var(--body);}
+.chip-danger{background:#b3261e;color:#fff;}
 .card-notes{font-size:12px;color:var(--body);line-height:1.5;}
 .move-select{width:100%;font-size:12px;padding:6px 8px;}
 

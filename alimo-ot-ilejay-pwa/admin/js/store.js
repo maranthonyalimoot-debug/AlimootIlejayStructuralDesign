@@ -20,6 +20,11 @@ const TASK_STATUSES = [
   { id: 'done', label: 'Done' },
 ];
 
+const TASK_CATEGORIES = [
+  { id: 'admin', label: 'Admin' },
+  { id: 'technical', label: 'Technical' },
+];
+
 const INQUIRY_STATUSES = [
   { id: 'new', label: 'New' },
   { id: 'converted', label: 'Converted' },
@@ -59,13 +64,15 @@ function taskToRow(task) {
   if ('assignedTo' in task) row.assigned_to = task.assignedTo;
   if ('targetDate' in task) row.target_date = task.targetDate || null;
   if ('status' in task) row.status = task.status;
+  if ('category' in task) row.category = task.category;
   if ('notes' in task) row.notes = task.notes || null;
   return row;
 }
 function rowToTask(row) {
   return {
     id: row.id, title: row.title, assignedTo: row.assigned_to, targetDate: row.target_date,
-    status: row.status, notes: row.notes, createdAt: row.created_at, updatedAt: row.updated_at,
+    status: row.status, category: row.category, notes: row.notes,
+    createdAt: row.created_at, updatedAt: row.updated_at,
   };
 }
 
@@ -127,7 +134,7 @@ function orThrow({ data, error }) {
 }
 
 const Store = {
-  LEAD_STAGES, TASK_STATUSES, INQUIRY_STATUSES, ASSIGNEES,
+  LEAD_STAGES, TASK_STATUSES, TASK_CATEGORIES, INQUIRY_STATUSES, ASSIGNEES,
 
   async listLeads() {
     const rows = orThrow(await sb.from('leads').select('*').order('created_at', { ascending: true }));
@@ -153,7 +160,7 @@ const Store = {
     return rows.map(rowToTask);
   },
   async createTask(data) {
-    const row = { status: 'todo', assignedTo: ASSIGNEES[0], targetDate: '', notes: '', ...data };
+    const row = { status: 'todo', category: 'admin', assignedTo: ASSIGNEES[0], targetDate: '', notes: '', ...data };
     const rows = orThrow(await sb.from('tasks').insert(taskToRow(row)).select());
     return rowToTask(rows[0]);
   },
