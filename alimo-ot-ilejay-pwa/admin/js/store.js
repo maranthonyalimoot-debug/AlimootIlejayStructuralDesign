@@ -49,6 +49,16 @@ const PROJECT_SERVICES = [
 
 const PROJECT_ROLES = ['Architect', 'Owner', 'Engineer', 'Others'];
 
+// Maps a Supabase auth email to the display name shown on notes/comments —
+// mirrors the emails allowed by the "Admins manage ..." RLS policies.
+const MEMBER_NAMES = {
+  'maranthonyalimoot@gmail.com': 'Mar Anthony',
+  'ilejaysamantha@gmail.com': 'Samantha',
+};
+function nameForEmail(email) {
+  return MEMBER_NAMES[(email || '').toLowerCase()] || email || 'Unknown';
+}
+
 // Only maps keys actually present on `lead` — a partial patch like
 // {stage: 'won'} (from moveLead/drag-and-drop) must not turn the *other*,
 // unmentioned fields into explicit nulls that overwrite existing data.
@@ -176,6 +186,37 @@ function rowToProject(row) {
   };
 }
 
+// Same partial-patch safety as leadToRow/taskToRow above.
+function noteToRow(note) {
+  const row = {};
+  if ('title' in note) row.title = note.title;
+  if ('body' in note) row.body = note.body ?? '';
+  if ('meetingDate' in note) row.meeting_date = note.meetingDate || null;
+  if ('createdBy' in note) row.created_by = note.createdBy;
+  if ('updatedBy' in note) row.updated_by = note.updatedBy;
+  return row;
+}
+function rowToNote(row) {
+  return {
+    id: row.id, title: row.title, body: row.body, meetingDate: row.meeting_date,
+    createdBy: row.created_by, updatedBy: row.updated_by,
+    createdAt: row.created_at, updatedAt: row.updated_at,
+  };
+}
+
+function commentToRow(comment) {
+  return {
+    note_id: comment.noteId, author_email: comment.authorEmail,
+    author_name: comment.authorName, body: comment.body,
+  };
+}
+function rowToComment(row) {
+  return {
+    id: row.id, noteId: row.note_id, authorEmail: row.author_email,
+    authorName: row.author_name, body: row.body, createdAt: row.created_at,
+  };
+}
+
 function orThrow({ data, error }) {
   if (error) throw error;
   return data;
@@ -184,6 +225,13 @@ function orThrow({ data, error }) {
 const Store = {
   LEAD_STAGES, TASK_STATUSES, TASK_CATEGORIES, INQUIRY_STATUSES, ASSIGNEES,
   PROJECT_STATUSES, PROJECT_SERVICES, PROJECT_ROLES,
+
+  // Set from the Supabase auth session right after sign-in so notes/comments
+  // can be attributed to a human name instead of a raw login email.
+  currentUser: { email: null, name: null },
+  setCurrentUser(email) {
+    this.currentUser = { email, name: nameForEmail(email) };
+  },
 
   async listLeads() {
     const rows = orThrow(await sb.from('leads').select('*').order('created_at', { ascending: true }));
@@ -255,6 +303,40 @@ const Store = {
   },
   moveProject(id, status) { return this.updateProject(id, { status }); },
   async deleteProject(id) { orThrow(await sb.from('projects').delete().eq('id', id)); },
+
+  // ---- Meeting notes: shared Notion-style pages + attributed comments ----
+  async listNotes() {
+    const rows = orThrow(await sb.from('meeting_notes').select('*').order('updated_at', { ascending: false }));
+    return rows.map(rowToNote);
+  },
+  async createNote(data) {
+    const who = this.currentUser.name;
+    const row = { title: data.title, body: '', meetingDate: data.meetingDate || null, createdBy: who, updatedBy: who };
+    const rows = orThrow(await sb.from('meeting_notes').insert(noteToRow(row)).select());
+    return rowToNote(rows[0]);
+  },
+  async updateNote(id, patch) {
+    const row = { ...patch, updatedBy: this.currentUser.name };
+    const rows = orThrow(
+      await sb.from('meeting_notes').update({ ...noteToRow(row), updated_at: new Date().toISOString() })
+        .eq('id', id).select()
+    );
+    return rows[0] ? rowToNote(rows[0]) : null;
+  },
+  async deleteNote(id) { orThrow(await sb.from('meeting_notes').delete().eq('id', id)); },
+
+  async listComments(noteId) {
+    const rows = orThrow(
+      await sb.from('meeting_note_comments').select('*').eq('note_id', noteId).order('created_at', { ascending: true })
+    );
+    return rows.map(rowToComment);
+  },
+  async addComment(noteId, body) {
+    const row = { noteId, authorEmail: this.currentUser.email, authorName: this.currentUser.name, body };
+    const rows = orThrow(await sb.from('meeting_note_comments').insert(commentToRow(row)).select());
+    return rowToComment(rows[0]);
+  },
+  async deleteComment(id) { orThrow(await sb.from('meeting_note_comments').delete().eq('id', id)); },
 
   // Turns a triaged inquiry into a workable lead card, folding the extra
   // fields into notes, and marks the inquiry converted so it isn't worked twice.
