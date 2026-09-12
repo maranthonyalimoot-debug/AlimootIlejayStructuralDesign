@@ -2,7 +2,7 @@
   "name": "alimo-ot-ilejay-pwa",
   "private": true,
   "version": "1.0.0",
-  "description": "Alimo-ot Ilejay Structural Design — PWA (static, no build step)",
+  "description": "Statika Engineering Services — PWA (static, no build step)",
   "scripts": {
     "dev": "http-server -p 5500 -c-1 -o"
   },
